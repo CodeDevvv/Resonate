@@ -165,3 +165,9 @@ Here are some of the planned improvements:
 * **Caching:** Integrate a Redis client into the Node.js backend to cache frequent queries and reduce database load.
 * **Enhanced Visualizations:** Add more interactive features to charts, such as date range filtering.
 * **Live Demo:** Deploy the full application stack for a live, interactive demonstration.
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for the full text.
