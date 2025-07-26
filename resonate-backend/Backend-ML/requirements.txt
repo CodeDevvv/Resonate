@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+openai-whisper
+pycryptodome
+python-dotenv
+httpx
+pydantic

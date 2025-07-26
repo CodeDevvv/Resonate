@@ -1,0 +1,55 @@
+# ===================================================================
+# General & System Files
+# ===================================================================
+# IDE and OS specific files
+.vscode/
+.idea/
+.DS_Store
+
+# Log files
+*.log
+
+# Build and distribution folders
+/build
+/dist
+/out
+
+# ===================================================================
+# Frontend (resonate-frontend)
+# ===================================================================
+# Node dependencies
+resonate-frontend/node_modules/
+
+# Next.js build output
+resonate-frontend/.next/
+
+# Local environment variables (IMPORTANT FOR SECURITY)
+resonate-frontend/.env.local
+resonate-frontend/.env 
+
+# ===================================================================
+# Node.js Backend (resonate-backend/Backend-Node)
+# ===================================================================
+# Node dependencies
+resonate-backend/Backend-Node/node_modules/
+
+# Local environment variables
+resonate-backend/Backend-Node/.env
+
+# Bun lockfile
+resonate-backend/Backend-Node/bun.lockb
+
+# ===================================================================
+# ML Backend (resonate-backend/Backend-ML)
+# ===================================================================
+# Python virtual environment
+resonate-backend/Backend-ML/venv/
+resonate-backend/Backend-ML/env/
+resonate-backend/Backend-ML/*.egg-info/
+resonate-backend/Backend-ML/myenv/
+# Python cache
+resonate-backend/Backend-ML/__pycache__/
+resonate-backend/Backend-ML/**/*.pyc
+
+# Local environment variables
+resonate-backend/Backend-ML/.env
