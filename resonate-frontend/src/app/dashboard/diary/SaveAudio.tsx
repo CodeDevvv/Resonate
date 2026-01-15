@@ -25,33 +25,29 @@ const SaveAudio = ({ audio }: AudioProps) => {
         formdata.append('audio', file)
         setIsLoading(true)
 
-        await axios.post(`${API_URL}/audio/saveAudio`, formdata, {
-            headers: {
-                'Content-Type': "multipart/form-data",
-                'Authorization': `Bearer ${token}`
-            }
-        })
-            .then(response => {
-                if (response.data.status) {
-                    setIsLoading(true)
-                    router.push(`/dashboard/diary/${response.data.audioID}`)
-                    setIsLoading(false)
-                    toast.success(response.data.message)
 
-                } else {
-                    toast.error(response.data.message)
+        try {
+            const response = await axios.post(`${API_URL}/audio/saveAudio`, formdata, {
+                headers: {
+                    'Content-Type': "multipart/form-data",
+                    'Authorization': `Bearer ${token}`
                 }
             })
-            .catch(error => {
-                if (error.response) {
-                    console.log(error.response.status + " -> " + error.response.data.message)
-                } else {
-                    console.error(error.message)
-                }
-            })
-            .finally(() => {
+            if (response.data.status) {
+                router.push(`/dashboard/diary/${response.data.audioID}`)
                 setIsLoading(false)
-            })
+                toast.success(response.data.message)
+            } else {
+                toast.error(response.data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error("Server request failed. Please retry")
+        }
+        finally {
+            setIsLoading(false)
+        }
     };
 
     return (

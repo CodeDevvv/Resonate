@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button";
-import { Pencil, Save } from "lucide-react";
+import { Pencil, RotateCw, Save } from "lucide-react";
 import { useAudioID } from './AudioIDContext';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useAuth } from '@clerk/nextjs';
-import { useLoading } from '@/components/Contexts/LoadingContexts';
 import { toast } from 'react-toastify';
 import { useApi } from '@/userQueries/userQuery';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 type TitleProps = {
   titleprop: string
@@ -14,35 +14,38 @@ type TitleProps = {
 
 const EditTitle: React.FC<TitleProps> = ({ titleprop }) => {
   const API_URL = useApi()
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [title, setTitle] = useState("")
   const id = useAudioID()
   const { getToken } = useAuth()
-  const { setIsLoading } = useLoading()
+  const queryClient = useQueryClient()
+
+  const [title, setTitle] = useState(titleprop)
+  const [editingTitle, setEditingTitle] = useState(false);
+
+
   useEffect(() => {
     setTitle(titleprop)
   }, [titleprop])
 
-  const handlesave = async () => {
-    setIsLoading(true)
-    setEditingTitle(false)
-    const token = await getToken()
-    if (!token || !id) {
-      toast.error("Something Went Wrong!")
-      return
+  const { mutate: handlesave, isPending } = useMutation({
+    mutationFn: async (title: string) => {
+      const response = await axios.patch(`${API_URL}/audio/setTitle?audioid=${id}`,
+        { newtitle: title.trim() },
+        { headers: { "Content-Type": "application/json", Authorization: `Bearer ${await getToken()}` } }
+      )
+      return response.data
+    },
+    onSuccess: () => {
+      setEditingTitle(false)
+      toast.success("Title Updated")
+      queryClient.invalidateQueries({ queryKey: ['audioEntry', id] })
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      setTitle(titleprop)
+      const message = error.response?.data?.message || "Failed to delete entry. Please try again.";
+      toast.error(message);
     }
+  })
 
-    await axios.patch(`${API_URL}/audio/setTitle?audioid=${id}`,
-      { newtitle: title },
-      { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
-    )
-      .then(res => {
-        if (res.data.status) { toast.success(res.data.message) }
-        else { toast.error(res.data.message) }
-      })
-      .catch(err => { console.log(err) })
-      .finally(() => { setIsLoading(false) })
-  }
   return (
     <div className="flex items-center space-x-3">
       {editingTitle ? (
@@ -52,15 +55,32 @@ const EditTitle: React.FC<TitleProps> = ({ titleprop }) => {
             value={title}
             onChange={e => setTitle(e.target.value)}
             autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handlesave(title);
+              if (e.key === 'Escape') setEditingTitle(false); 
+            }}
           />
-          <Button size="icon" variant="ghost" onClick={handlesave} aria-label="Save title">
-            <Save className="w-5 h-5 text-primary" />
-          </Button>
+          {
+            isPending ?
+              (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                >
+                  <RotateCw className="w-4 h-4 animate-spin" />
+                </Button>
+              ) : (
+                <Button size="icon" variant="ghost" onClick={() => handlesave(title)} aria-label="Save title" disabled={isPending || title === titleprop}>
+                  <Save className="w-5 h-5 text-primary" />
+                </Button>
+
+              )
+          }
         </>
       ) : (
         <>
           <h1 className="text-3xl font-bold flex-1">{title}</h1>
-          <Button size="icon" variant="ghost" onClick={() => { setEditingTitle(true) }} aria-label="Edit title">
+          <Button size="icon" variant="ghost" onClick={() => { setEditingTitle(true) }} aria-label="Edit title" hidden={isPending}>
             <Pencil className="w-5 h-5 text-muted-foreground" />
           </Button>
         </>

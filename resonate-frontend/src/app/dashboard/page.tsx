@@ -12,8 +12,7 @@ const ThoughtOfTheDayCard = () => {
     setIsMounted(true)
   }, [])
 
-  const day = new Date().getDay()
-  const { data: thoughtData, isLoading } = useThougtofTheDay(day)
+  const { data: thoughtData, isLoading } = useThougtofTheDay()
 
   if (!isMounted) { return null }
 
@@ -31,7 +30,7 @@ const ThoughtOfTheDayCard = () => {
             </div>
           ) : (
             <blockquote className="border-l-4 border-accent/70 pl-4">
-              <p className="text-lg italic">&quot;{thoughtData?.content}&quot;</p>
+              <p className="text-lg italic">&quot;{thoughtData?.thought}&quot;</p>
               <cite className="block text-right mt-2 not-italic font-semibold">— {thoughtData?.author}</cite>
             </blockquote>
           )}

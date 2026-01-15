@@ -5,6 +5,26 @@ export const useApi = () => {
     return process.env.NEXT_PUBLIC_API_URL
 }
 
+export const useDiaryEntries = (page, pageSize) => {
+    const API_URL = useApi()
+    return useQuery({
+        queryKey: ['diaryEntries', page],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/diary/fetchDairyEntries?page=${pageNum}&pagesize=${pageSize}`,
+                {headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }}
+            );
+            return response.data
+        },
+        staleTime: 5 * 60 * 1000,
+        placeholderData: (previousData) => previousData,
+    })
+}
+
+
 export const useChartData = (token) => {
     const API_URL = useApi()
     return useQuery({
@@ -53,10 +73,11 @@ export const useFrequentTopics = (token) => {
     })
 }
 
-export const useThougtofTheDay = (day) => {
+export const useThougtofTheDay = () => {
     const API_URL = useApi()
+    const today = new Date().toISOString().split('T')[0];
     return useQuery({
-        queryKey: ['today', day],
+        queryKey: ['thought', today],
         queryFn: () =>
             fetch(`${API_URL}/diary/thoughtOfTheDay`)
                 .then(res => {
@@ -65,7 +86,6 @@ export const useThougtofTheDay = (day) => {
                     }
                     return res.json();
                 }),
-        enabled: !!day,
         staleTime: 24 * 60 * 60 * 1000
     })
 }

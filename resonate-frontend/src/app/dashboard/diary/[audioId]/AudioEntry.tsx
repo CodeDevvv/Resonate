@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { Mic, Play, Pause, RefreshCw, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button"; 
+import { Play, Pause, RefreshCw, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import toast from 'react-hot-toast';;
 import { useAuth } from "@clerk/nextjs";
 import { useLoading } from "@/components/Contexts/LoadingContexts";
@@ -142,7 +142,7 @@ const AudioEntry = () => {
     }
 
     return (
-        <div className="flex items-center justify-between bg-muted rounded-xl px-6 py-4 shadow-inner">
+        <div className="group flex items-center gap-3 bg-muted rounded-full p-2 pr-6 shadow-sm border border-primary/5 hover:shadow-md transition-all duration-300">
             {audioUrl && (
                 <audio
                     ref={audioRef}
@@ -152,28 +152,58 @@ const AudioEntry = () => {
                     preload="metadata"
                 />
             )}
-            <div className="flex items-center space-x-3">
-                <Mic className="w-8 h-8 text-primary" />
-                <span className="font-semibold text-lg">Audio Entry</span>
+
+            {/* Primary Control: Play/Pause (Prominent & Circular) */}
+            <Button
+                size="icon"
+                className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-md hover:scale-105 transition-transform shrink-0"
+                onClick={handlePlayPause}
+                aria-label={isPlaying ? "Pause" : "Play"}
+            >
+                {isPlaying ? (
+                    <Pause className="w-5 h-5 fill-current" />
+                ) : (
+                    <Play className="w-5 h-5 fill-current ml-1" /> // ml-1 to visually center the triangle
+                )}
+            </Button>
+
+            {/* Center: Fake Waveform Visualizer & Label */}
+            <div className="flex-1 flex flex-col justify-center min-w-[120px]">
+                <div className="flex items-center gap-1 h-4 mb-1 opacity-80">
+                    {/* CSS simulated waveform bars */}
+                    {[1, 2, 3, 2, 4, 2, 1, 2].map((height, i) => (
+                        <div
+                            key={i}
+                            className={`w-1 rounded-full bg-primary/60 transition-all duration-300 ${isPlaying ? 'animate-pulse' : ''}`}
+                            style={{ height: `${height * 20 + 20}%` }}
+                        />
+                    ))}
+                </div>
+                <span className="text-xs font-bold text-primary/60 uppercase tracking-widest pl-1">
+                    Voice Note
+                </span>
             </div>
-            <div className="flex items-center space-x-2">
+
+            {/* Secondary Actions (Divider separated) */}
+            <div className="flex items-center gap-1 pl-3 border-l border-primary/10">
                 <Button
                     size="icon"
                     variant="ghost"
-                    onClick={handlePlayPause}
-                    aria-label={isPlaying ? "Pause" : "Play"}
+                    className="h-9 w-9 hover:bg-primary/10 rounded-full"
+                    aria-label="Retake"
+                    onClick={handleReplay}
                 >
-                    {isPlaying ? (
-                        <Pause className="w-6 h-6 text-primary" />
-                    ) : (
-                        <Play className="w-6 h-6 text-primary" />
-                    )}
+                    <RefreshCw className="w-4 h-4 text-accent" />
                 </Button>
-                <Button size="icon" variant="ghost" aria-label="Retake" onClick={handleReplay}>
-                    <RefreshCw className="w-6 h-6 text-accent" />
-                </Button>
-                <Button size="icon" variant="ghost" aria-label="Delete" onClick={handledelete}>
-                    <Trash2 className="w-6 h-6 text-destructive" />
+
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 hover:bg-destructive/10 rounded-full"
+                    aria-label="Delete"
+                    onClick={handledelete}
+                >
+                    <Trash2 className="w-4 h-4 text-destructive transition-colors" />
                 </Button>
             </div>
         </div>
