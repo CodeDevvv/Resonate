@@ -1,50 +1,44 @@
-import React, { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button";
+import axios from 'axios';
 import { Pencil, RotateCw, Save } from "lucide-react";
-import { useAudioID } from './AudioIDContext';
-import axios, { AxiosError } from 'axios';
-import { useAuth } from '@clerk/nextjs';
-import { toast } from 'react-toastify';
-import { useApi } from '@/userQueries/userQuery';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useUpdateTitle } from './useEntry';
 
 type TitleProps = {
   titleprop: string
 }
 
 const EditTitle: React.FC<TitleProps> = ({ titleprop }) => {
-  const API_URL = useApi()
-  const id = useAudioID()
-  const { getToken } = useAuth()
-  const queryClient = useQueryClient()
-
   const [title, setTitle] = useState(titleprop)
   const [editingTitle, setEditingTitle] = useState(false);
-
 
   useEffect(() => {
     setTitle(titleprop)
   }, [titleprop])
 
-  const { mutate: handlesave, isPending } = useMutation({
-    mutationFn: async (title: string) => {
-      const response = await axios.patch(`${API_URL}/audio/setTitle?audioid=${id}`,
-        { newtitle: title.trim() },
-        { headers: { "Content-Type": "application/json", Authorization: `Bearer ${await getToken()}` } }
-      )
-      return response.data
-    },
-    onSuccess: () => {
-      setEditingTitle(false)
-      toast.success("Title Updated")
-      queryClient.invalidateQueries({ queryKey: ['audioEntry', id] })
-    },
-    onError: (error: AxiosError<{ message: string }>) => {
-      setTitle(titleprop)
-      const message = error.response?.data?.message || "Failed to delete entry. Please try again.";
-      toast.error(message);
-    }
-  })
+  const { mutate: updateTitle, isPending } = useUpdateTitle()
+
+  const handleUpdateTitle = (title: string) => {
+    setEditingTitle(false)
+    updateTitle(title, {
+      onSuccess: () => {
+        toast.success("Title updated successfully");
+      },
+      onError: (err) => {
+        let message = "An unexpected error occurred";
+
+        if (axios.isAxiosError(err)) {
+          message = err.response?.data?.message || "Server error";
+        } else if (err instanceof Error) {
+          message = err.message;
+        }
+        setEditingTitle(true)
+        toast.error(message);
+        setTitle(titleprop);
+      }
+    })
+  }
 
   return (
     <div className="flex items-center space-x-3">
@@ -56,8 +50,8 @@ const EditTitle: React.FC<TitleProps> = ({ titleprop }) => {
             onChange={e => setTitle(e.target.value)}
             autoFocus
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handlesave(title);
-              if (e.key === 'Escape') setEditingTitle(false); 
+              if (e.key === 'Enter') handleUpdateTitle(title);
+              if (e.key === 'Escape') setEditingTitle(false);
             }}
           />
           {
@@ -70,7 +64,7 @@ const EditTitle: React.FC<TitleProps> = ({ titleprop }) => {
                   <RotateCw className="w-4 h-4 animate-spin" />
                 </Button>
               ) : (
-                <Button size="icon" variant="ghost" onClick={() => handlesave(title)} aria-label="Save title" disabled={isPending || title === titleprop}>
+                <Button size="icon" variant="ghost" onClick={() => handleUpdateTitle(title)} aria-label="Save title" disabled={isPending || title === titleprop}>
                   <Save className="w-5 h-5 text-primary" />
                 </Button>
 

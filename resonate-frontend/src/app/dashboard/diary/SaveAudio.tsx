@@ -1,82 +1,61 @@
+"use client"
 import React from 'react'
-import { Save } from 'lucide-react';
-import axios from 'axios'
-import { useAuth } from '@clerk/nextjs';
-import { toast } from 'react-toastify';
+import { Loader2, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useLoading } from '@/components/Contexts/LoadingContexts';
-import { useApi } from '@/userQueries/userQuery';
+import { useSaveEntry } from './useDiary';
 
-interface AudioProps {
-    audio: Blob
+type AudioProps = {
+    audio: Blob,
+    isLoading: boolean;
+    setIsLoading: (loading: boolean) => void;
 }
 
-const SaveAudio = ({ audio }: AudioProps) => {
-    const { getToken } = useAuth();
+const SaveAudio = ({ audio, isLoading, setIsLoading }: AudioProps) => {
     const router = useRouter()
-    const API_URL = useApi()
-    const { setIsLoading, isLoading } = useLoading()
-    const saveRecording = async () => {
-        const token = await getToken();
-        if (!audio || !token) return;
+    const { mutate: saveEntry } = useSaveEntry(setIsLoading)
 
+    const handleSaveEntry = async () => {
         const file = new File([audio], 'audio.wav', { type: 'audio/wav' });
         const formdata = new FormData()
         formdata.append('audio', file)
-        setIsLoading(true)
 
-
-        try {
-            const response = await axios.post(`${API_URL}/audio/saveAudio`, formdata, {
-                headers: {
-                    'Content-Type': "multipart/form-data",
-                    'Authorization': `Bearer ${token}`
+        saveEntry(formdata, {
+            onSuccess: (result) => {
+                if (result?.entryId) {
+                    router.push(`/dashboard/diary/${result.entryId}`);
+                } else {
+                    console.error("No entryId found in response", result);
                 }
-            })
-            if (response.data.status) {
-                router.push(`/dashboard/diary/${response.data.audioID}`)
-                setIsLoading(false)
-                toast.success(response.data.message)
-            } else {
-                toast.error(response.data.message)
             }
-
-        } catch (error) {
-            console.log(error)
-            toast.error("Server request failed. Please retry")
-        }
-        finally {
-            setIsLoading(false)
-        }
-    };
+        })
+    }
 
     return (
-        <div>
-            {
-                isLoading
-                    ?
-                    <button
-                        className={`flex items-center gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors'
-                    }`}
-                        aria-label="Save recording"
-                        disabled
-                    >
-                        <Save className="w-4 h-4" />
-                        <span>Saving...</span>
-                    </button>
-                    :
-                    <button
-                        onClick={saveRecording}
-                        className={`flex items-center gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors'
-                    }`}
-                        aria-label="Save recording"
-                    >
-                        <Save className="w-4 h-4" />
-                        <span>Save</span>
-                    </button>
-            }
-        </div>
-
+        <button
+            onClick={handleSaveEntry}
+            disabled={isLoading}
+            className={`
+                flex items-center justify-center gap-2 w-full h-full 
+                rounded-xl font-medium text-sm transition-all duration-200 shadow-sm
+                ${isLoading
+                    ? "bg-primary/80 text-primary-foreground cursor-not-allowed opacity-80"
+                    : "bg-primary hover:bg-primary/90 text-primary-foreground hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                }
+            `}
+            aria-label={isLoading ? "Saving recording" : "Save recording"}
+        >
+            {isLoading ? (
+                <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving...</span>
+                </>
+            ) : (
+                <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Entry</span>
+                </>
+            )}
+        </button>
     );
 };
 

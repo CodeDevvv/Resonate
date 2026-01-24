@@ -9,7 +9,7 @@ import { useAuth } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { validateTargetDate } from '../../../Validation/Vallidate.js'
-import { useApi } from '@/userQueries/userQuery.js';
+import API_URL from '@/components/utils/getApiUrl';
 
 const AddGoal = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -20,7 +20,6 @@ const AddGoal = () => {
   });
   const { getToken } = useAuth()
   const queryClient = useQueryClient()
-  const API_URL = useApi()
   const handleSave = async () => {
 
     if (!form.title || !form.target_date) {

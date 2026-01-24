@@ -1,21 +1,19 @@
+import API_URL from "@/components/utils/getApiUrl";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
-export const useApi = () => {
-    return process.env.NEXT_PUBLIC_API_URL
-}
-
 export const useDiaryEntries = (page, pageSize) => {
-    const API_URL = useApi()
     return useQuery({
         queryKey: ['diaryEntries', page],
         queryFn: async () => {
             const response = await axios.get(
-                `${API_URL}/diary/fetchDairyEntries?page=${pageNum}&pagesize=${pageSize}`,
-                {headers: {
+                `${API_URL}/entries/getEntriesList?page=${pageNum}&pagesize=${pageSize}`,
+                {
+                    headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`
-                    }}
+                    }
+                }
             );
             return response.data
         },
@@ -24,9 +22,7 @@ export const useDiaryEntries = (page, pageSize) => {
     })
 }
 
-
 export const useChartData = (token) => {
-    const API_URL = useApi()
     return useQuery({
         queryKey: ['chartData', token],
         queryFn: async () => {
@@ -41,7 +37,6 @@ export const useChartData = (token) => {
 };
 
 export const useHeatmapData = (token) => {
-    const API_URL = useApi()
     return useQuery({
         queryKey: ['HeatMapData', token],
         queryFn: async () => {
@@ -56,7 +51,6 @@ export const useHeatmapData = (token) => {
 }
 
 export const useFrequentTopics = (token) => {
-    const API_URL = useApi()
     return useQuery({
         queryKey: ['frequentTopicsData', token],
         queryFn: async () => {
@@ -74,12 +68,11 @@ export const useFrequentTopics = (token) => {
 }
 
 export const useThougtofTheDay = () => {
-    const API_URL = useApi()
     const today = new Date().toISOString().split('T')[0];
     return useQuery({
         queryKey: ['thought', today],
         queryFn: () =>
-            fetch(`${API_URL}/diary/thoughtOfTheDay`)
+            fetch(`${API_URL}/quotes/getDailyQuote`)
                 .then(res => {
                     if (!res.ok) {
                         throw new Error('Network response was not ok');
@@ -91,7 +84,6 @@ export const useThougtofTheDay = () => {
 }
 
 export const useGoals = (token) => {
-    const API_URL = useApi()
     return useQuery({
         queryKey: ['Goals', token],
         queryFn: async () => {

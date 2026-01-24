@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, BackgroundTasks
 import os
 import whisper
 from pydantic import BaseModel
@@ -9,92 +9,61 @@ from Crypto.Protocol.KDF import scrypt
 from dotenv import load_dotenv
 import asyncio
 import requests
+import httpx
 
-from utils.helperFunction import encrypt_text
-from utils.ai_service import get_full_analysis
+from utils.helperFunction import encrypt_text, decrypt_text
+from utils.ai_service import get_full_analysis, transcribe_audio
 
 app = FastAPI()
 load_dotenv()
 
-try:
-    whisper_model = whisper.load_model("base")
-    whisper_model_lock = threading.Lock()
-except Exception as e:
-    print(f"Could not load Whisper model: {e}")
-    whisper_model = None
-
 HEADERS = {}
 
 # Define BaseModel
-class AudioRequest(BaseModel):
-    url: str
-
-class Status(BaseModel):
+class AnalyzePayload(BaseModel):
+    hasTranscript: bool
     hasSummary: bool
     hasTags: bool
-    hasMood: bool
+    hasMoodScores: bool
     hasReflections: bool
     hasSuggestions: bool
     hasGoals: bool
-class AiAnalysisRequest(BaseModel):
-    transcription: str
-    status: Status
+    audioUrl: str  
+    transcript: str 
+    userId: str
+    entryId: str # Added this to track the entry ID
 
-# --- API Endpoints ---
-@app.post("/transcribe")
-async def transcribe_audio(payload: AudioRequest):
-    if not whisper_model:
-        raise HTTPException(status_code=503, detail="Transcription service is unavailable.")
-        
-    def downloadAudioFromUrl(url):
-        print(f"Downloading Audio..")
-        try:
-            response = requests.get(url, timeout=60) # Sync download
-            response.raise_for_status()
-        except Exception as e:
-            raise RuntimeError(f"Download failed: {e}")
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-            tmp.write(response.content)
-            print("Audio Downloaded.")
-            return tmp.name
-            
-    def run_transcription(audio_path, tries):
-        try:
-            print("Starting Whisper Transcription, try:", tries)
-            with whisper_model_lock:
-                result = whisper_model.transcribe(audio_path)
-                return result["text"]
-        finally:
-            if audio_path and os.path.exists(audio_path):
-                os.unlink(audio_path)
-
-    try:
-        audio_path = await asyncio.to_thread(downloadAudioFromUrl, payload.url)
-        transcript_text = None
-        if audio_path:
-            tries = 0
-            if transcript_text is None and tries <= 3:
-                tries+=1
-                transcript_text = run_transcription(audio_path, tries)
-            else:
-                raise HTTPException(status_code=400, detail="Transcription not generated")
-        print("Audio Transcription Completed")
-        encrypted_text = encrypt_text(transcript_text)
-        return {
-            "transcription": encrypted_text, 
-        }
-
-    except Exception as e:
-        print(f"Processing Failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post('/analyisTranscript')
-async def get_AI_analysis(payload: AiAnalysisRequest):
-    print(", Starting AI Analysis...")
-    ai_results = await get_full_analysis(payload.transcription, payload.status)
-    print("AI Analysis Sucessfully completed. Results :", ai_results)
-    return {
-        "ai_results" : ai_results
-    }
+# This function handles the logic in the background
+async def process_background_analysis(payload: AnalyzePayload):
+    print(f"Background Task Started for Audio ID: {payload.entryId}")
+    transcription = payload.transcript
     
+    try:
+        if not transcription:
+            print("No transcript found, starting transcription...")
+            transcription = await transcribe_audio(payload.audioUrl)
+        
+        model_results = await get_full_analysis(encrypt_text(transcription), payload)
+        
+        model_results["transcript"] = transcription
+        print("Analyze completed, constructed Analysis Results: ", model_results)
+        
+        node_backend_url = os.getenv("NODE_BACKEND_URL")
+        async with httpx.AsyncClient() as client:
+            expressPayload = {
+                "analysis" : model_results,
+                "status" : payload.model_dump()
+            }
+            response = await client.post(f"{node_backend_url}/audio/handleAiResult", json=expressPayload)
+            print("Sent to Express:", response.status_code)
+            
+    except Exception as e:
+        print(f"Background Processing Failed for {payload.entryId}: {e}")
+
+@app.post("/analyze")
+async def startAnalyse(payload: AnalyzePayload, background_tasks: BackgroundTasks):
+    print("Received Analyze Request. Offloading to background task.")
+    # Add the processing function to background tasks
+    background_tasks.add_task(process_background_analysis, payload)
+    # Return immediately
+    return {"message": "Analysis started", "entryId": payload.entryId}

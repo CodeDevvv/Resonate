@@ -1,5 +1,5 @@
 import express from "express"
-import { getChartData, getHeatmapData, getTopics } from "../Controllers/InsightsController"
+import { getChartData, getHeatmapData, getTopics } from "../controllers/insightController"
 
 const router = express.Router()
 

@@ -1,17 +1,17 @@
 "use client"
 import { useParams } from "next/navigation"
-import { AudioIdProvider } from "./AudioIDContext"
+import { EntryIDProvider } from "./EntryIDContext"
 import { ReactNode } from "react";
 
 
 const AudioPage = ({ children }: { children: ReactNode }) => {
     const params = useParams()
-    const audioid = params.audioId as string
+    const entryId = params.entryId as string
 
     return (
-        <AudioIdProvider audioid={audioid}>
+        <EntryIDProvider entryId={entryId}>
             {children}
-        </AudioIdProvider>
+        </EntryIDProvider>
     )
 }
 

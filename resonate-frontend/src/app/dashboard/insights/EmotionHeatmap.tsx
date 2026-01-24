@@ -5,7 +5,7 @@ import { useHeatmapData } from '@/userQueries/userQuery';
 import { useAuth } from '@clerk/nextjs';
 import React, { useEffect, useState } from 'react';
 import { ResponsiveCalendar } from "@nivo/calendar";
-import { toast } from 'react-toastify';
+import toast from 'react-hot-toast';
 
 interface NivoHeatmapData {
     day: string;

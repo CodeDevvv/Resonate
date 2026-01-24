@@ -38,7 +38,7 @@ export default function RootLayout({
             <SignedOut>
               <Navbar />
             </SignedOut>
-            <Toaster position="top-center" />
+            <Toaster position="bottom-left" />
             {children}
           </Providers>
         </body>

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useApi, useGoals } from "@/userQueries/userQuery";
+import { useGoals } from "@/userQueries/userQuery";
 import { useAuth } from "@clerk/nextjs";
 import AiLoader from "@/components/AiLoader";
 import toast from "react-hot-toast";
@@ -17,6 +17,7 @@ import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { validateTargetDate } from "@/Validation/Vallidate";
 import FormattedDate from "@/components/FormattedDate";
+import API_URL from '@/components/utils/getApiUrl';
 
 const calculateDaysLeft = (targetDateStr: string | Date) => {
   const today = new Date();
@@ -40,7 +41,7 @@ interface GoalType {
   description: string;
   target_date: Date;
   isCompleted: boolean;
-  audio_id: string;
+  entryId: string;
 }
 
 interface EditFormState {
@@ -52,7 +53,6 @@ interface EditFormState {
 }
 
 const GetGoals = () => {
-  const API_URL = useApi()
   const queryClient = useQueryClient()
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -89,7 +89,6 @@ const GetGoals = () => {
   const { data: goals, error, isLoading } = useGoals(token);
 
   const handleSave = () => {
-    console.log(editForm)
     if (!editForm.title || !editForm.target_date) {
       toast.error("Goal should have a name and target date")
       return;
@@ -221,8 +220,8 @@ const GetGoals = () => {
                         <Badge className={`${daysLeftInfo.color} text-white`}>{daysLeftInfo.label}</Badge>
                       </>
                     )}
-                    {goal.audio_id && (
-                      <Link href={`/dashboard/diary/${goal.audio_id}`}>
+                    {goal.entryId && (
+                      <Link href={`/dashboard/entries/${goal.entryId}`}>
                         <Button variant="link" size="sm" className="p-0 h-auto text-primary flex items-center gap-1.5">
                           <BookText className="w-4 h-4" /> Go to Linked Entry
                         </Button>

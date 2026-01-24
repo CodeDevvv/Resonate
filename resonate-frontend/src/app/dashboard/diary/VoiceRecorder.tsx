@@ -1,25 +1,30 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Pause, Square, Mic, X } from "lucide-react";
+import { Play, Pause, Square, Mic, RotateCw } from "lucide-react";
 import SaveAudio from "./SaveAudio";
-import { useLoading } from "@/components/Contexts/LoadingContexts";
 
-const VoiceRecorder: React.FC = () => {
-    const [recordingState, setRecordingState] = useState<"idle" | "recording" | "paused">("idle");
-    const [playbackState, setPlaybackState] = useState<"stopped" | "playing" | "paused">("stopped");
+type VoiceRecorderProps = {
+    isLoading: boolean;
+    setIsLoading: (loading: boolean) => void;
+    setIsRecording: (recording: boolean) => void;
+}
+
+const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ isLoading, setIsLoading, setIsRecording }) => {
     const [recordingDuration, setRecordingDuration] = useState(0);
-    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
     const [audioURL, setAudioURL] = useState<string | null>(null);
     const [audioFile, setAudioFile] = useState<Blob | null>(null);
+    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+    const [recordingState, setRecordingState] = useState<"idle" | "recording" | "paused">("idle");
+    const [playbackState, setPlaybackState] = useState<"stopped" | "playing" | "paused">("stopped");
 
     const audioChunksRef = useRef<Blob[]>([]);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const { isLoading } = useLoading()
     const startRecording = async () => {
         try {
+            setIsRecording(true)
             // Get microphone access
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
@@ -53,6 +58,7 @@ const VoiceRecorder: React.FC = () => {
         } catch (error) {
             console.error("Error starting recording:", error);
             alert("Could not access microphone. Please check permissions.");
+            setIsRecording(false)
         }
     };
 
@@ -85,6 +91,7 @@ const VoiceRecorder: React.FC = () => {
 
     // Stop recording
     const stopRecording = () => {
+        setIsLoading(true)
         // Stop media recorder
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
@@ -103,6 +110,7 @@ const VoiceRecorder: React.FC = () => {
         if (timerRef.current) {
             clearInterval(timerRef.current);
         }
+        setIsLoading(false)
     };
 
     // Play recorded audio
@@ -154,6 +162,7 @@ const VoiceRecorder: React.FC = () => {
             URL.revokeObjectURL(audioURL);
             setAudioURL(null);
         }
+        setIsRecording(false)
         setRecordingDuration(0);
         setPlaybackState("stopped");
         if (audioRef.current) {
@@ -186,157 +195,145 @@ const VoiceRecorder: React.FC = () => {
     };
 
     return (
-        <div className="w-full max-w-lg flex flex-col gap-6">
-            {/* Recording Controls */}
-            <div className="flex flex-col items-center gap-4">
-                <div className="flex gap-4">
-                    {recordingState === "idle" ? (
-                        <div className="flex flex-col items-center gap-3 w-full">
-                            <div className="w-full flex flex-col items-center">
-                                <div className="relative flex items-center justify-center mb-4">
-                                    <span className="absolute inline-flex h-20 w-20 rounded-full bg-primary/20 animate-pulse" />
-                                    <button
-                                        onClick={startRecording}
-                                        className="w-16 h-16 rounded-full z-1 bg-primary flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-                                        aria-label="Start recording"
-                                        disabled={isLoading}
-                                    >
-                                        <Mic className="w-8 h-8 text-white" />
-                                    </button>
-                                </div>
+        <div className="w-full max-w-sm mx-auto h-full flex flex-col justify-between relative z-10">
+            <div className="flex-1 flex flex-col items-center justify-center min-h-0 pb-10">
+                {recordingState === "idle" ? (
+                    <div className="flex flex-col items-center gap-8 w-full animate-in fade-in zoom-in duration-500 fill-mode-forwards">
+                        <div className="relative flex items-center justify-center group cursor-pointer" onClick={startRecording}>
+                            <span className="absolute inline-flex h-40 w-40 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                            <span className="absolute inline-flex h-28 w-28 rounded-full bg-primary/10 animate-pulse" />
 
-                                {audioURL ? (
-                                    <div className="flex flex-col items-center">
-                                        <p className="text-muted-foreground text-sm mb-2">
-                                            Record Again!
-                                        </p>
-                                        <p>{formatTime(recordingDuration)}</p>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center">
-                                        <h2 className="text-2xl font-bold text-primary mb-1 tracking-tight">Ready to record?</h2>
-                                        <p className="text-muted-foreground text-sm mb-2">
-                                            Click the mic to start recording your thoughts.
-                                        </p>
-                                        <p className="text-xs text-muted-foreground italic">
-                                            Your voice, your story—captured securely.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <>
                             <button
-                                onClick={pauseRecording}
-                                disabled={recordingState !== "recording"}
-                                className={`w-12 h-12 rounded-full flex items-center justify-center ${recordingState === "recording"
-                                    ? "bg-yellow-500 hover:bg-yellow-600"
-                                    : "bg-gray-300 cursor-not-allowed"
-                                    }`}
-                                aria-label="Pause recording"
+                                className="relative z-10 w-20 h-20 rounded-full bg-gradient-to-b from-primary to-primary/90 text-primary-foreground shadow-xl shadow-primary/20 flex items-center justify-center group-hover:scale-105 transition-all duration-300"
+                                aria-label="Start recording"
+                                disabled={isLoading}
                             >
-                                <Pause className="w-5 h-5 text-white" />
+                                <Mic className="w-8 h-8 drop-shadow-sm" />
                             </button>
+                        </div>
+
+                        {audioURL ? (
+                            <div className="text-center space-y-3 animate-in slide-in-from-bottom-2">
+                                <h3 className="text-lg font-semibold text-foreground tracking-tight">
+                                    Review your entry
+                                </h3>
+                                <button
+                                    onClick={startRecording}
+                                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary/50 hover:bg-secondary text-xs font-medium text-secondary-foreground transition-colors"
+                                >
+                                    <RotateCw className="w-3 h-3" />
+                                    Record Again
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center space-y-1.5 max-w-[250px]">
+                                <h2 className="text-lg font-bold tracking-tight text-foreground">
+                                    Tap to Record
+                                </h2>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                    Capture your thoughts securely.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center w-full animate-in slide-in-from-bottom-8 duration-500 fill-mode-forwards">
+                        <div className="flex flex-col items-center mb-10">
+                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border mb-6 transition-colors duration-300 ${recordingState === "recording"
+                                ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                : "bg-orange-500/10 text-orange-500 border-orange-500/20"
+                                }`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${recordingState === "recording" ? "bg-current animate-pulse" : "bg-current"}`} />
+                                <span>{recordingState === "recording" ? "Recording" : "Paused"}</span>
+                            </div>
+                            <span className="text-6xl sm:text-7xl font-mono font-light text-foreground tracking-tighter tabular-nums">
+                                {formatTime(recordingDuration)}
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-6 sm:gap-10">
+                            {recordingState === "recording" ? (
+                                <button
+                                    onClick={pauseRecording}
+                                    className="group flex flex-col items-center gap-2"
+                                >
+                                    <div className="w-14 h-14 rounded-full bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-500 flex items-center justify-center border border-orange-200 dark:border-orange-900 hover:scale-105 transition-all duration-300 shadow-sm">
+                                        <Pause className="w-6 h-6 fill-current" />
+                                    </div>
+                                    <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wide group-hover:text-orange-500 transition-colors">Pause</span>
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={resumeRecording}
+                                    className="group flex flex-col items-center gap-2"
+                                >
+                                    <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-500 flex items-center justify-center border border-emerald-200 dark:border-emerald-900 hover:scale-105 transition-all duration-300 shadow-sm">
+                                        <Play className="w-6 h-6 ml-1 fill-current" />
+                                    </div>
+                                    <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wide group-hover:text-emerald-500 transition-colors">Resume</span>
+                                </button>
+                            )}
 
                             <button
                                 onClick={stopRecording}
-                                className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center"
-                                aria-label="Stop recording"
+                                className="group flex flex-col items-center gap-2"
                             >
-                                <Square className="w-5 h-5 text-white" />
+                                <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-500 flex items-center justify-center border border-red-200 dark:border-red-900 hover:scale-105 transition-all duration-300 shadow-sm">
+                                    <Square className="w-6 h-6 fill-current" />
+                                </div>
+                                <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wide group-hover:text-red-500 transition-colors">Stop</span>
                             </button>
-
-                            <button
-                                onClick={resumeRecording}
-                                disabled={recordingState !== "paused"}
-                                className={`w-12 h-12 rounded-full flex items-center justify-center ${recordingState === "paused"
-                                    ? "bg-green-500 hover:bg-green-600"
-                                    : "bg-gray-300 cursor-not-allowed"
-                                    }`}
-                                aria-label="Resume recording"
-                            >
-                                <Play className="w-5 h-5 text-white" />
-                            </button>
-                        </>
-                    )}
-                </div>
-
-                {/* Recording Status */}
-                {recordingState !== "idle" && (
-                    <div className="flex items-center gap-2 text-sm">
-                        <div
-                            className={`w-3 h-3 rounded-full ${recordingState === "recording" ? "bg-red-500 animate-pulse" : "bg-gray-500"
-                                }`}
-                        ></div>
-                        <span>{formatTime(recordingDuration)}</span>
-                        <span className="text-muted-foreground">
-                            {recordingState === "recording" ? "Recording" : "Paused"}
-                        </span>
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* Playback Controls */}
-            {audioURL && recordingState === "idle" && (
-                <div className="flex justify-center gap-4">
-                    {playbackState === "stopped" ? (
+            <div
+                className={`w-full space-y-4 pt-4 border-t border-border/40 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${audioURL && recordingState === "idle"
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8 pointer-events-none hidden"
+                    }`}
+            >
+
+                <div className="flex items-center justify-between bg-secondary/30 p-2 pr-4 rounded-full border border-border/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-3">
                         <button
-                            onClick={playAudio}
-                            className="p-3 rounded-full bg-green-500 hover:bg-green-600"
-                            aria-label="Play audio"
+                            onClick={playbackState === "playing" ? pauseAudio : (playbackState === "stopped" ? playAudio : resumeAudio)}
+                            className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-sm"
                         >
-                            <Play className="w-5 h-5 text-white" />
+                            {playbackState === "playing" ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 ml-0.5 fill-current" />}
                         </button>
-                    ) : playbackState === "playing" ? (
-                        <button
-                            onClick={pauseAudio}
-                            className="p-3 rounded-full bg-yellow-500 hover:bg-yellow-600"
-                            aria-label="Pause audio"
-                        >
-                            <Pause className="w-5 h-5 text-white" />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={resumeAudio}
-                            className="p-3 rounded-full bg-green-500 hover:bg-green-600"
-                            aria-label="Resume audio"
-                        >
-                            <Play className="w-5 h-5 text-white" />
-                        </button>
-                    )}
+
+                        <div className="flex flex-col justify-center h-full">
+                            <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">Preview</span>
+                            <span className="text-xs font-mono font-medium text-foreground">{formatTime(recordingDuration)}</span>
+                        </div>
+                    </div>
 
                     <button
                         onClick={stopAudio}
                         disabled={playbackState === "stopped"}
-                        className={`p-3 rounded-full ${playbackState !== "stopped"
-                            ? "bg-red-500 hover:bg-red-600"
-                            : "bg-gray-300 cursor-not-allowed"
-                            }`}
-                        aria-label="Stop audio"
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30"
+                        title="Stop Preview"
                     >
-                        <Square className="w-5 h-5 text-white" />
+                        <Square className="w-4 h-4 fill-current" />
                     </button>
                 </div>
-            )}
 
-            {/* Save and Cancel Controls */}
-            {audioURL && recordingState === "idle" && (
-                <div className="flex justify-center gap-3 pt-2">
-                    {audioFile && <SaveAudio audio={audioFile} />}
-
+                <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={cancelRecording}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-                        aria-label="Cancel recording"
+                        className="flex items-center justify-center gap-2 h-11 rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-all font-medium text-sm"
                         disabled={isLoading}
                     >
-                        <X className="w-4 h-4" />
                         Cancel
                     </button>
-                </div>
-            )}
 
+                    <div className="h-11 w-full [&>button]:w-full [&>button]:h-full [&>button]:text-sm [&>button]:rounded-xl [&>button]:shadow-sm">
+                        {audioFile && <SaveAudio audio={audioFile} isLoading={isLoading} setIsLoading={setIsLoading} />}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

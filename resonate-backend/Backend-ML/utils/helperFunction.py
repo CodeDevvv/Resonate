@@ -2,7 +2,6 @@ import json
 import os
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
-from dotenv import load_dotenv
 
 def extract_json(text: str):
     """
@@ -20,6 +19,7 @@ def extract_json(text: str):
 
 
 def encrypt_text(text: str) -> dict:
+    if not text or len(text) <= 0: return 
     encryption_key = os.getenv("ENCRYPTION_KEY")
     salt = b'salt'
     key = scrypt(encryption_key.encode('utf-8'), salt, key_len=32, N=16384, r=8, p=1)
@@ -31,3 +31,22 @@ def encrypt_text(text: str) -> dict:
     padded_text = text_bytes + bytes([pad_len] * pad_len)
     encrypted = cipher.encrypt(padded_text)
     return f"{iv.hex()}:{encrypted.hex()}"
+
+def decrypt_text(encrypted_string: str) -> str:
+    if not encrypted_string or len(encrypted_string) <=0: return 
+    encryption_key = os.getenv("ENCRYPTION_KEY")
+    salt = b'salt' 
+    key = scrypt(encryption_key.encode('utf-8'), salt, key_len=32, N=16384, r=8, p=1)
+    try:
+        iv_hex, ciphertext_hex = encrypted_string.split(":")
+        iv = bytes.fromhex(iv_hex)
+        ciphertext = bytes.fromhex(ciphertext_hex)
+    except ValueError:
+        raise ValueError("Invalid format. Expected 'iv_hex:ciphertext_hex'")
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    padded_text = cipher.decrypt(ciphertext)
+    pad_len = padded_text[-1]
+    if pad_len < 1 or pad_len > AES.block_size:
+        raise ValueError("Decryption failed: Invalid padding.")
+    text = padded_text[:-pad_len]
+    return text.decode('utf-8')

@@ -4,19 +4,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '@clerk/nextjs';
-import { useApi } from '@/userQueries/userQuery';
-
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, X } from 'lucide-react';
+import API_URL from '@/components/utils/getApiUrl';
 
 interface AddGoalDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     initialData?: { title: string; desc: string };
-    audioId?: string;
+    entryId?: string;
 }
 
 const isDateInPast = (dateString: string): boolean => {
@@ -26,11 +25,10 @@ const isDateInPast = (dateString: string): boolean => {
     return new Date(dateString) < today;
 };
 
-export const AddGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, initialData, audioId }) => {
+export const AddGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, initialData, entryId }) => {
     const [form, setForm] = useState({ title: "", desc: "", target_date: "" });
     const { getToken } = useAuth();
     const queryClient = useQueryClient();
-    const API_URL = useApi()
 
     useEffect(() => {
         if (initialData) {
@@ -55,7 +53,7 @@ export const AddGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange
         const toastId = toast.loading("Saving goal...");
         try {
             const token = await getToken();
-            const payload = { ...form, audio_id: audioId };
+            const payload = { ...form, entryId: entryId };
 
             const res = await axios.post(`${API_URL}/goals/addGoal`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
