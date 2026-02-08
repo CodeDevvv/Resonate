@@ -1,8 +1,19 @@
+import { createClient } from "@supabase/supabase-js";
+import { decrypt_transcription } from "../utils/decryptTranscription";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export const handleAiResult = async (req, res) => {
     try {
         const { analysis, status: inputStatus } = req.body
+        if (analysis && analysis === 'failed') {
+            console.error("Input status is failed. Aborting process."); 
+            throw new Error("Analysis failed: The background process reported a failure status.");
+        }
         console.log("Received AI Results Callback")
-        console.log(analysis)
 
         if (!inputStatus?.userId || !inputStatus?.entryId) {
             console.log("Invalid Webhook Payload");
@@ -66,7 +77,7 @@ export const handleAiResult = async (req, res) => {
                     .map(([moodName]) => moodName);
 
                 prepareInsertData["mood_labels"] = significantMood;
-                socketResult["mood_scores"] = analysis.mood_scores;
+                socketResult["mood_labels"] = significantMood;
             } else {
                 isCompleted = false;
             }
@@ -97,6 +108,7 @@ export const handleAiResult = async (req, res) => {
             if (analysis.goals && analysis.goals.length > 0) {
                 prepareInsertData["goals"] = analysis.goals;
                 socketResult["goals"] = safeDecrypt(analysis.goals);
+                socketResult["isGoalAdded"] = false
             } else {
                 isCompleted = false;
             }
@@ -121,12 +133,13 @@ export const handleAiResult = async (req, res) => {
         }
         req.io.to(entryId).emit('entry_update', {
             status: isCompleted,
-            result: prepareInsertData
+            result: socketResult
         })
         return res.status(200).send('OK');
 
     } catch (error) {
         console.log("SaveAiResults Error: ", error)
+        console.log(req.body?.status?.userId + " : " + req.body?.status?.entryId)
         if (req.body?.status?.userId && req.body?.status?.entryId) {
             await supabase
                 .from('DiaryEntry')

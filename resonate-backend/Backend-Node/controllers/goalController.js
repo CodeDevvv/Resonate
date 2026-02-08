@@ -6,102 +6,128 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export const AddGoal = async (req, res) => {
-    const token = req.headers.authorization.replace('Bearer ', "")
-    if (!token) { return res.json({ status: false, message: "unauthorized request" }) }
-    try {
-        const decoded = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY
-        })
-        const clerk_user_id = decoded.sub
-        const goalData = req.body
-        if (!goalData) { return res.json({ status: false, message: "Goal not found!" }) }
-        const currDate = new Date()
-        currDate.setHours(0, 0, 0, 0)
-        const getTarget = new Date(goalData.target_date)
+const getUserId = async (token) => {
+    const decoded = await verifyToken(token, {
+        secretKey: process.env.CLERK_SECRET_KEY
+    })
+    return decoded.sub
+}
 
-        if (getTarget < currDate) { return res.json({ status: false, message: "target date cannot be in past!" }) }
+export const addGoal = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.replace("Bearer ", "");
+        if (!token) {
+            console.log("[Goal] Authorization token missing");
+            return res.status(401).json({ status: false, message: "Authentication required" });
+        }
+
+        const userId = await getUserId(token);
+        const goalData = req.body;
+
+        if (!goalData || !goalData.title) {
+            console.log("[Goal] Request body is empty or missing title");
+            return res.status(400).json({ status: false, message: "Goal details are required" });
+        }
+
+        const { title, description, targetDate, entryId } = goalData;
+
+        const currDate = new Date();
+        currDate.setHours(0, 0, 0, 0);
+        const getTarget = new Date(targetDate);
+
+        if (getTarget < currDate) {
+            console.log(`[Goal] Validation failed: Date ${targetDate} is in the past`);
+            return res.status(400).json({ status: false, message: "The target date cannot be in the past" });
+        }
 
         const { error: insertError } = await supabase
-            .from('GoalEntries')
+            .from('GoalEntry')
             .insert([{
-                name: goalData.title,
-                description: goalData.desc,
-                target_date: goalData.target_date,
-                user_id: clerk_user_id
-            }])
-            .eq('user_id', clerk_user_id)
+                title: title,
+                description: description,
+                target_date: targetDate,
+                user_id: userId,
+                entry_id: entryId
+            }], { count: 'minimal' });
 
         if (insertError) {
-            console.log(insertError)
-            return res.json({ status: false, message: "Error occurred while adding goal" })
+            console.log("[Goal] Database insert error:", insertError.message);
+            return res.status(500).json({ status: false, message: "Could not save your goal at this time" });
         }
 
-        return res.json({ status: true, message: "Goal added!" })
+        console.log(`[Goal] successfully created: ${title}`);
+        return res.status(201).json({ status: true, message: "Goal has been added successfully!" });
+
     } catch (error) {
-        console.log(error)
-        return res.json({ status: false, message: "Unexpected error" })
+        console.log("[Goal] Unexpected system error:", error);
+        return res.status(500).json({ status: false, message: "An unexpected error occurred" });
     }
 }
 
-export const GetGoals = async (req, res) => {
-    const token = req.headers.authorization.replace("Bearer ", "")
-    if (!token) return res.json({ status: false, message: "unauthorized call" })
-
+export const getGoals = async (req, res) => {
     try {
-        const decoded = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY
-        })
-        const clerk_user_id = decoded.sub
-
-        if (!clerk_user_id) return res.json({ status: false, message: "session expired, login again!" })
-
-        const { data: fetchGoals, error: fetchError } = await supabase
-            .from('GoalEntries')
-            .select('*')
-            .eq('user_id', clerk_user_id)
-
-        if (fetchError) {
-            console.log(fetchError)
-            return res.json({ status: false, message: "error while fetching goals" })
+        const token = req.headers.authorization?.replace("Bearer ", "")
+        if (!token) {
+            return res.status(401).json({ status: false, message: "Authentication required" })
         }
 
-        return res.json({ status: true, goals: fetchGoals })
+        const userId = await getUserId(token)
+        if (!userId) {
+            return res.status(401).json({ status: false, message: "Session expired, please login again" })
+        }
+        const { data, error } = await supabase
+            .from('GoalEntry')
+            .select(`               
+                goalId: goal_id,
+                createdAt: created_at,
+                title,
+                description,
+                isCompleted,
+                targetDate: target_date,
+                entryId: entry_id,
+                userId: user_id
+            `)
+            .eq('user_id', userId)
+            .order('target_date', { ascending: true });
+        if (error) {
+            console.log(error)
+            return res.status(500).json({ status: false, message: "Unable to retrieve goals" })
+        }
 
+        return res.status(200).json({ status: true, message: "Goals fetched successfully", goalEntries: data })
 
     } catch (error) {
         console.log(error)
+        return res.status(500).json({ status: false, message: "Internal server error" })
     }
 }
 
-export const UpdateGoal = async (req, res) => {
+export const updateGoal = async (req, res) => {
     const token = req.headers.authorization.replace('Bearer ', "")
     if (!token) return res.json({ status: false, message: "unauthorized call" })
 
     try {
-        const decoded = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY
-        })
-        const clerk_user_id = decoded.sub
-        if (!clerk_user_id) return res.json({ status: false, message: "session expired! login back" })
+
+        const userId = await getUserId(token);
+        if (!userId) return res.json({ status: false, message: "session expired! login back" })
 
         const updateData = req.body
         const currDate = new Date()
         currDate.setHours(0, 0, 0, 0)
-        const getTarget = new Date(updateData.target_date)
+        const getTarget = new Date(updateData.targetDate)
 
         if (getTarget < currDate) { return res.json({ status: false, message: "target date cannot be in past!" }) }
 
         const { error: updateError } = await supabase
-            .from('GoalEntries')
+            .from('GoalEntry')
             .update({
-                'name': updateData.title,
-                'description': updateData.desc,
-                'target_date': updateData.target_date,
+                'title': updateData.title,
+                'description': updateData.description,
+                'target_date': updateData.targetDate,
                 'isCompleted': updateData.isCompleted
             })
-            .eq('goal_id', updateData.id)
-            .eq('user_id', clerk_user_id)
+            .eq('goal_id', updateData.goalId)
+            .eq('user_id', userId)
 
         if (updateError) {
             console.log(updateError)
@@ -115,31 +141,43 @@ export const UpdateGoal = async (req, res) => {
     }
 }
 
-export const DeleteGoal = async (req, res) => {
-    const token = req.headers.authorization.replace('Bearer ', "")
-    if (!token) return res.json({ status: false, message: "unauthorized call" })
-
+export const deleteGoal = async (req, res) => {
     try {
-        const decoded = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY
-        })
-        const clerk_user_id = decoded.sub
-        if (!clerk_user_id) { return res.json({ status: false, message: "session expired , login back" }) }
-        const goal_id = req.query.goalId
+        const token = req.headers.authorization?.replace('Bearer ', "");
+        if (!token) {
+            console.log("[Goal] Authorization token missing");
+            return res.status(401).json({ status: false, message: "Unauthorized Call" });
+        }
+
+        const userId = await getUserId(token);
+        if (!userId) {
+            console.log("[Goal] Session expired");
+            return res.status(401).json({ status: false, message: "Session expired, please login again" });
+        }
+
+        const { goalId } = req.query;
+
+        if (!goalId) {
+            console.log("[Goal] Delete request missing goalId");
+            return res.status(400).json({ status: false, message: "Goal ID is required" });
+        }
+
         const { error: deleteError } = await supabase
-            .from('GoalEntries')
+            .from('GoalEntry')
             .delete()
-            .eq('goal_id', goal_id)
-            .eq('user_id', clerk_user_id)
+            .eq('goal_id', goalId)
+            .eq('user_id', userId);
 
         if (deleteError) {
-            console.log(deleteError)
-            return res.json({ status: false, message: "error while deleting goal" })
+            console.log("[Goal] Database delete error:", deleteError.message);
+            return res.status(500).json({ status: false, message: "Error while deleting goal" });
         }
-        return res.json({ status: true })
+
+        console.log(`[Goal] Successfully deleted goal ID: ${goalId}`);
+        return res.status(200).json({ status: true, message: "Goal deleted successfully" });
 
     } catch (error) {
-        console.log(error)
-        return res.json({ status: false, message: "unexpected error occurred" })
+        console.log("[Goal] Unexpected system error:", error);
+        return res.status(500).json({ status: false, message: "Unexpected error occurred" });
     }
-} 
+}

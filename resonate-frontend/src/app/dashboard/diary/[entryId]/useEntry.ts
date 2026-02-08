@@ -3,7 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import API_URL from "@/components/utils/getApiUrl";
+import { API_URL } from "@/components/utils/getApiUrl";
 import { useEntryID } from "./EntryIDContext";
 
 // Fetch Entry Details
@@ -46,11 +46,11 @@ export const useUpdateTitle = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (title: string) => {
-            const response = await axios.patch(`${API_URL}/entries/updateTitle?entryId=${entryId}`,
-                { newtitle: title.trim() },
+            const { data } = await axios.patch(`${API_URL}/entries/updateTitle?entryId=${entryId}`,
+                { newTitle: title.trim() },
                 { headers: { "Content-Type": "application/json", Authorization: `Bearer ${await getToken()}` } }
             )
-            return response.data
+            return data
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['diaryEntry', entryId] })
@@ -58,3 +58,5 @@ export const useUpdateTitle = () => {
         }
     })
 }
+
+

@@ -29,7 +29,7 @@ io.on('connection', (socket) => {
         socket.join(entryId)
         console.log(`Socket ${socket.id} joined room: ${entryId}`);
     })
-    socket.on('diconnect', () => {
+    socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
     })
 })
@@ -40,9 +40,7 @@ app.use((req, res, next) => {
 })
 
 app.get("/", (req, res) => {
-    console.log("Server running")
-    console.log("db connected")
-    return res.write(`<h1>Hello, Welcome</h1>`)
+    return res.send(`<h1>Hello, Welcome</h1>`);
 })
 
 import entryRoutes from './routes/entryRoutes.js';

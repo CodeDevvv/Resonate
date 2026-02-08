@@ -5,6 +5,7 @@
 .vscode/
 .idea/
 .DS_Store
+resonate-backend/Backend-ML/.venv/
 
 # Log files
 *.log
@@ -53,3 +54,6 @@ resonate-backend/Backend-ML/**/*.pyc
 
 # Local environment variables
 resonate-backend/Backend-ML/.env
+
+# Project Mangement
+TODO.txt

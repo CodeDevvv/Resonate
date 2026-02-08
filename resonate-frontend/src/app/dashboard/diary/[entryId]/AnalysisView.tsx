@@ -3,13 +3,6 @@ import React, { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import {
     ChevronDown,
     ChevronUp,
     RotateCw,
@@ -19,36 +12,46 @@ import {
     Brain,
     Lightbulb,
     FileText,
+    Plus,
+    CheckCircle2
 } from "lucide-react";
-import { AddGoalDialog } from "./AddGoal";
 import { useRefetchAnalysis } from "./useEntry";
 import AiLoader from "@/components/AiLoader";
 import { io } from 'socket.io-client';
-import SOCKET_URL from "@/components/utils/getApiUrl";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEntryID } from "./EntryIDContext";
+import { SOCKET_URL } from "@/components/utils/getApiUrl";
+import { useAddGoal } from "../../goals/useGoal";
+import AddGoalDialog from "../../goals/UpdateGoal";
 
 type AnalysisViewProps = {
     entryDetails: {
         transcript: string;
         ai_summary: string;
-        mood: { [key: string]: number };
+        mood_labels: { [key: string]: number };
         suggestions: string;
         reflections: string;
         tags: string[];
-        goal: string | null;
+        goals: string | null;
+        isGoalAdded?: boolean;
         status: string;
     };
 };
+interface GoalFormData {
+    title: string,
+    description: string,
+    targetDate: string,
+    entryId?: string
+}
 
 const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
     const entryId = useEntryID();
     const queryClient = useQueryClient();
 
-    const [isGoalDetectedDialogOpen, setIsGoalDetectedDialogOpen] = useState(false);
     const [isAddGoalDialogOpen, setAddGoalDialogOpen] = useState(false);
     const [showTranscript, setShowTranscript] = useState(false);
+    const { mutate: addGoal, isPending } = useAddGoal();
 
     const { mutate: refetchMutation } = useRefetchAnalysis();
 
@@ -59,7 +62,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
         socket.emit('join_entry', entryId);
 
         socket.on('entry_update', (payload) => {
-            queryClient.setQueryData(['diaryEntry', entryId], (oldData: any) => {
+            queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => {
                 if (!oldData) return null;
                 return {
                     ...oldData,
@@ -73,25 +76,15 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
         });
 
         return () => {
+            socket.off('entry_update');
             socket.disconnect();
         };
-    }, [entryId, entryDetails.status, queryClient]);
-
-    useEffect(() => {
-        if (entryDetails?.goal) {
-            setIsGoalDetectedDialogOpen(true);
-        }
-    }, [entryDetails]);
-
-    const handleAddGoalClick = () => {
-        setIsGoalDetectedDialogOpen(false);
-        setAddGoalDialogOpen(true);
-    };
+    }, [entryId, entryDetails?.status, queryClient]);
 
     const handleRefetch = (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        queryClient.setQueryData(['diaryEntry', entryId], (oldData: any) => ({
+        queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => ({
             ...oldData,
             entryDetails: {
                 ...oldData.entryDetails,
@@ -110,30 +103,46 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
         });
     };
 
+    const handleAddGoal = (payload: GoalFormData) => {
+        payload = {...payload, entryId: entryId}
+        addGoal(payload, {
+            onSuccess: () => {
+                toast.success("Goal added");
+                queryClient.invalidateQueries({ queryKey: ['diaryEntry', entryId] });
+                setAddGoalDialogOpen(false);
+            },
+            onError: (err) => {
+                toast.error(err.message || "Failed adding goal");
+            }
+        })
+    }
+
     if (entryDetails.status === 'processing') return <AiLoader />;
 
     const isIncomplete =
-        !entryDetails.ai_summary ||
-        !entryDetails.mood ||
-        !entryDetails.tags ||
-        !entryDetails.suggestions ||
-        !entryDetails.reflections ||
-        entryDetails.status === 'failed';
+        !entryDetails?.ai_summary ||
+        !entryDetails?.mood_labels ||
+        !entryDetails?.tags ||
+        !entryDetails?.suggestions ||
+        !entryDetails?.reflections || !entryDetails?.goals || entryDetails.status === 'failed';
+
+    const hasValidGoal = entryDetails.goals && entryDetails.goals.toLowerCase().trim() !== "None detected";
 
     return (
         <>
             <div className="space-y-6 animate-fade-in mx-auto">
+                {/* Header Section: Moods, Tags, Retry */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div className="space-y-3 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                            {entryDetails.mood && Object.keys(entryDetails.mood).length > 0 ? (
-                                Object.keys(entryDetails.mood).map((m) => (
+                            {entryDetails?.mood_labels && Object.keys(entryDetails?.mood_labels).length > 0 ? (
+                                Object.keys(entryDetails?.mood_labels).map((m) => (
                                     <Badge
                                         key={m}
                                         variant="outline"
                                         className="px-3 py-1 text-sm border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
                                     >
-                                        {entryDetails.mood[m]}
+                                        {entryDetails.mood_labels[m]}
                                     </Badge>
                                 ))
                             ) : (
@@ -143,8 +152,8 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
 
                         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                             <Tag className="w-4 h-4" />
-                            {entryDetails.tags && Object.keys(entryDetails.tags).length > 0 ? (
-                                Object.entries(entryDetails.tags).map(([key, value]) => (
+                            {entryDetails?.tags && Object.keys(entryDetails?.tags).length > 0 ? (
+                                Object.entries(entryDetails?.tags).map(([key, value]) => (
                                     <span key={key} className="bg-secondary/50 px-2 py-0.5 rounded text-secondary-foreground">
                                         #{value}
                                     </span>
@@ -161,7 +170,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
                             size="sm"
                             onClick={handleRefetch}
                             className="text-red-600 border-red-200 hover:bg-red-50 self-start shrink-0"
-                            title="This will attempt to regenerate missing Summary, Mood, Tags, or Suggestions."
+                            title={`This will attempt to regenerate missing data`}
                         >
                             <RotateCw className="w-3.5 h-3.5 mr-2" />
                             Retry Analysis
@@ -169,6 +178,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
                     )}
                 </div>
 
+                {/* Summary Section */}
                 <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-6 border border-primary/10 shadow-sm">
                     <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-primary">
                         <Sparkles className="w-5 h-5" />
@@ -183,6 +193,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
                     )}
                 </div>
 
+                {/* Grid Section: Reflections & Suggestions */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-card rounded-xl border shadow-sm p-5 flex flex-col h-full">
                         <h3 className="font-semibold text-base mb-3 flex items-center gap-2 text-slate-700 dark:text-slate-300">
@@ -205,6 +216,37 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
                     </div>
                 </div>
 
+                {hasValidGoal && (
+                    <div className="bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800 rounded-xl p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-sm">
+                        <div className="space-y-1">
+                            <h3 className="font-semibold text-base flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
+                                <Target className="w-4 h-4" />
+                                Goal Detected
+                            </h3>
+                            <p className="text-emerald-700/80 dark:text-emerald-300/80 text-sm italic">
+                                &quot;{entryDetails.goals}&quot;
+                            </p>
+                        </div>
+
+                        {entryDetails.isGoalAdded ? (
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 shrink-0 px-3 py-1.5">
+                                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                                Added to Goals
+                            </Badge>
+                        ) : (
+                            <Button
+                                size="sm"
+                                onClick={() => setAddGoalDialogOpen(true)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                            >
+                                <Plus className="w-4 h-4 mr-1.5" />
+                                Add to Goals
+                            </Button>
+                        )}
+                    </div>
+                )}
+
+                {/* Transcript Section */}
                 <div className="border-t pt-4">
                     <Button
                         variant="ghost"
@@ -232,40 +274,13 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
                 </div>
             </div>
 
-            <Dialog open={isGoalDetectedDialogOpen} onOpenChange={setIsGoalDetectedDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Target className="w-6 h-6 text-primary" /> Goal Detected
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <p className="text-muted-foreground text-sm">
-                            From your journal entry, we identified a potential goal:
-                        </p>
-                        <div className="p-4 bg-muted/50 rounded-lg border border-primary/10">
-                            <p className="font-medium text-primary italic text-center">
-                                &quot;{entryDetails.goal}&quot;
-                            </p>
-                        </div>
-                        <p className="text-muted-foreground text-sm">
-                            Would you like to track this in your goals list?
-                        </p>
-                    </div>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="ghost" onClick={() => setIsGoalDetectedDialogOpen(false)}>
-                            Ignore
-                        </Button>
-                        <Button onClick={handleAddGoalClick}>Add to Goals</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
             <AddGoalDialog
                 open={isAddGoalDialogOpen}
                 onOpenChange={setAddGoalDialogOpen}
-                initialData={{ title: entryDetails.goal || "", desc: entryDetails.goal || "" }}
-                entryId={entryId}
+                initialData={{ title: "Untitled Goal", description: entryDetails.goals || "" }}
+                onGoalUpdate={(payload) => handleAddGoal(payload)}
+                isPending={isPending}
+                isGoalUpdate={false}
             />
         </>
     );

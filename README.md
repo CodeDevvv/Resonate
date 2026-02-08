@@ -128,6 +128,7 @@ This table breaks down each core feature of Resonate and the primary technology 
     Open a new terminal and run the following command. This will download the Gemma 2B model (a one-time process) and start the local AI server.
     ```bash
     ollama run gemma:2b
+    ollama run llama3.2:3b
     ```
 
 4.  **Install & Run Backend Services:**

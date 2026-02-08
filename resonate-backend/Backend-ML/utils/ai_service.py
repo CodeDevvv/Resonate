@@ -6,21 +6,44 @@ import whisper
 import threading
 import tempfile
 import requests
+from dotenv import load_dotenv
 
-from utils.helperFunction import extract_json, encrypt_text
+from utils.helperFunction import extract_json, encrypt_text, decrypt_text
+load_dotenv()
 
-
-API_URL = os.getenv('LLAMA_MODELURL', 'http://localhost:11434/v1/chat/completions')
+LLM_URL = os.getenv('LLM_API_URL')
+MODEL = os.getenv('LLM_MODEL_ID')
+is_gemini = 'gemini' in MODEL.lower()
 
 try:
     whisper_model = whisper.load_model("base")
     whisper_model_lock = threading.Lock()
 except Exception as e:
-    print(f"Could not load Whisper model: {e}")
+    print(f"[INIT ERROR] Could not load Whisper model: {e}")
     whisper_model = None
 
+async def send_payload_to_model(client:httpx.AsyncClient ,system_prompt, user_content, temperature):
+    headers = {"Content-Type": "application/json"}
+    if is_gemini:
+        api_key = os.getenv('RESONATE_GEMINI_KEY')
+        headers["Authorization"] = f"Bearer {api_key}"
+    payload = {
+        "model": MODEL, 
+        "messages": [
+            {"role": "system", "content": system_prompt}, 
+            {"role": "user", "content": user_content}
+        ],
+        "temperature":temperature  
+    }
+
+    response = await client.post(LLM_URL, json=payload, headers=headers)
+    response.raise_for_status()
+    result = response.json()
+    return extract_json(result['choices'][0]['message']['content'].strip())
+    
+
 async def get_summary_and_tags(client: httpx.AsyncClient, text: str):
-    print("***** Fetching summary and tags *******")
+    print("[AI SERVICE] Fetching summary and tags...")
     system_prompt = """You are a precise JSON extractor. 
                         Task: Analyze the text and return a valid JSON object.
                         Required Keys:
@@ -35,20 +58,10 @@ async def get_summary_and_tags(client: httpx.AsyncClient, text: str):
     user_content = f"""TEXT: "{text}"
                         INSTRUCTIONS: Return ONLY the JSON object. Do not add conversational text."""
     
-    payload = {
-        "model": "gemma:2b", 
-        "messages": [
-            {"role": "system", "content": system_prompt}, 
-            {"role": "user", "content": user_content}
-        ],
-        "temperature": 0.1  
-    }
-    response = await client.post(API_URL, json=payload)
-    result = response.json()
-    return extract_json(result['choices'][0]['message']['content'].strip())
+    return await send_payload_to_model(client, system_prompt, user_content, 0.5)
 
 async def get_moodScores(client: httpx.AsyncClient, text: str):
-    print("****** Fetching the mood_labels scores ******")
+    print("[AI SERVICE] Fetching mood scores...")
     
     system_prompt = """You are a sentiment analyzer. 
     Task: Rate emotions from 0.0 to 1.0.
@@ -71,25 +84,14 @@ async def get_moodScores(client: httpx.AsyncClient, text: str):
     user_content = f"""TEXT: "{text}"
     INSTRUCTIONS: Return ONLY the JSON object. Ensure ALL 7 keys (joy, sadness, anger, fear, surprise, love, calm) are present."""
 
-    payload = {
-        "model": "gemma:2b", 
-        "messages": [
-            {"role": "system", "content": system_prompt}, 
-            {"role": "user", "content": user_content}
-        ],
-        "temperature": 0.1
-    }
-    
-    response = await client.post(API_URL, json=payload)
-    result = response.json()
-    return extract_json(result['choices'][0]['message']['content'].strip())
+    return await send_payload_to_model(client, system_prompt,user_content, 0.1)
 
 async def get_reflection_and_suggestion(client: httpx.AsyncClient, text: str):
-    print("****** Fetching reflection and suggestion ****** ")
+    print("[AI SERVICE] Fetching reflection and suggestion...")
     system_prompt = """You are an empathetic counselor. 
-    Task: Provide a short reflection and an actionable suggestion.
+    Task: Provide a reflection and an actionable suggestion.
     
-    Example Output:
+    Example Output :
     {
         "reflections": "You seem to be handling a difficult situation with grace.",
         "suggestions": "Take a moment to appreciate your own resilience today."
@@ -97,23 +99,12 @@ async def get_reflection_and_suggestion(client: httpx.AsyncClient, text: str):
     """
     
     user_content = f"""TEXT: "{text}"
-    INSTRUCTIONS: Return ONLY the JSON object with keys "reflections" and "suggestions"."""
+    INSTRUCTIONS: Return ONLY the JSON object with keys "reflections" and "suggestions" and strictly follow the format."""
 
-    payload = {
-        "model": "gemma:2b", 
-        "messages": [
-            {"role": "system", "content": system_prompt}, 
-            {"role": "user", "content": user_content}
-        ],
-        "temperature": 0.3 # Slightly higher for creativity in suggestions
-    }
-    
-    response = await client.post(API_URL, json=payload)
-    result = response.json()
-    return extract_json(result['choices'][0]['message']['content'].strip())
+    return await send_payload_to_model(client, system_prompt,user_content, 0.4)
 
 async def get_goal(client: httpx.AsyncClient, text: str):
-    print("****** Fetching the goals ******")
+    print("[AI SERVICE] Fetching goals...")
     system_prompt = """You are a goal extractor.
     Task: Identify a specific objective or future plan.
     
@@ -121,26 +112,51 @@ async def get_goal(client: httpx.AsyncClient, text: str):
     { "goals": "Run a marathon in December" }
     
     If NO goal is found:
-    { "goals": null }
+    { "goals": "None detected" }
     """
     
     user_content = f"""TEXT: "{text}"
     INSTRUCTIONS: Return ONLY the JSON object with key "goals". Use null if unclear."""
+    
+    return await send_payload_to_model(client, system_prompt,user_content, 0.2)
 
-    payload = {
-        "model": "gemma:2b", 
-        "messages": [
-            {"role": "system", "content": system_prompt}, 
-            {"role": "user", "content": user_content}
-        ],
-        "temperature": 0.1
+MAX_RETRIES = 3
+async def get_combined_analysis(client, text,required_keys):
+    keys = {
+        "ai_summary": '"ai_summary": Concise summary of the text (keep it shorter then actual text).',
+        "tags": ' "tags": Array of 3-5 keywords.',
+        "mood_scores": '"mood_scores": { "joy": float, "sadness": float, "anger": float, "fear": float, "surprise": float, "love": float, "calm": float } (Rate 0.0 to 1.0)',
+        "reflections": '"reflections": An empathetic reflection.',
+        "suggestions": '"suggestions": One actionable suggestion.',
+        "goals": '"goals": Identify a specific objective or "None detected".'
     }
-    response = await client.post(API_URL, json=payload)
-    result = response.json()
-    return extract_json(result['choices'][0]['message']['content'].strip())
+    system_prompt = """You are a precise JSON extractor and psychologist. Analyze the text and return ONE JSON object.
+                    Required Keys:
+                    """
+    user_content = f"TEXT: '{text}'\nINSTRUCTIONS: Return ONLY the JSON object with requried keys only."
+    system_prompt += f"""
+                    {keys['ai_summary']}\n{keys['mood_scores']}\n{keys['tags']}\n{keys['reflections']}\n{keys['suggestions']}\n{keys['goals']}
+                """
+    accumulated_results = {}
+    for attempt in range(MAX_RETRIES):
+        try:
+            print("[AI SERVICE] Performing combined analysis...: Attempt:", attempt + 1)
+            results  = await send_payload_to_model(client, system_prompt,user_content, 0.2)
+            if isinstance(results, dict):
+                accumulated_results.update(results)
+            isCompleted = True
+            for key in required_keys:
+                if key not in accumulated_results:
+                    system_prompt += f"{keys[key]}\n"
+                    isCompleted  = False
+            if isCompleted:
+                print("Successfully")
+                return [accumulated_results]
+        except: 
+            print("Error While combine, reattempt")
+    return [accumulated_results]
 
 # Retry 3 Times
-MAX_RETRIES = 1
 async def call_with_retry (func, client , text, required_keys, should_skip):
     if should_skip:
         return None
@@ -151,24 +167,27 @@ async def call_with_retry (func, client , text, required_keys, should_skip):
             if isinstance(result, dict) and all(key in result for key in required_keys):
                 return result
             
-            print(f"Attempt {attempt + 1}: Invalid format for {func.__name__}. Retrying...")
+            print(f"[WARNING] Invalid format from {func.__name__} (Attempt {attempt + 1}). Retrying...")
         except Exception as e:
-            print(f"Attempt {attempt + 1}: Error in {func.__name__}: {e}")
-        
-        # Give some time for ollama
-        await asyncio.sleep(1)
+            print(f"[ERROR] Exception in {func.__name__} (Attempt {attempt + 1}): {e}")
+            # Give some time for ollama
+            await asyncio.sleep(1)
     return {}
     
 async def get_full_analysis(text: str, status):
-    print("Starting AI Analysis...")
     async with httpx.AsyncClient(timeout=180.0) as client:
-        tasks = [
-            call_with_retry(get_summary_and_tags, client, text, ["ai_summary", "tags"], (status.hasSummary and status.hasTags)),
-            call_with_retry(get_moodScores, client, text, ["mood_scores"], status.hasMoodScores),
-            call_with_retry(get_reflection_and_suggestion, client, text, ["reflections", "suggestions"], (status.hasReflections and status.hasSuggestions)),
-            call_with_retry(get_goal, client, text, ["goals"], status.hasGoals)
-        ]
-        results = await asyncio.gather(*tasks)
+        results = {}
+        if is_gemini:
+            results = await get_combined_analysis(client, text, ["ai_summary", "tags", "mood_scores", "reflections", "suggestions", "goals"])    
+        else:
+            print("[AI ANALYSIS] Starting concurrent analysis tasks...")
+            tasks = [
+                call_with_retry(get_summary_and_tags, client, text, ["ai_summary", "tags"], (status.hasSummary and status.hasTags)),
+                call_with_retry(get_moodScores, client, text, ["mood_scores"], status.hasMoodScores),
+                call_with_retry(get_reflection_and_suggestion, client, text, ["reflections", "suggestions"], (status.hasReflections and status.hasSuggestions)),
+                call_with_retry(get_goal, client, text, ["goals"], status.hasGoals)
+            ]
+            results = await asyncio.gather(*tasks)
         
         final_analysis = {}
         for res in results:
@@ -177,52 +196,67 @@ async def get_full_analysis(text: str, status):
                     if res.get(key): 
                         res[key] = encrypt_text(res[key])
                 final_analysis.update(res)
-        print("AI Analysis Sucessfully completed.")
-        return final_analysis
+        print("[AI ANALYSIS] Analysis Completed.")
+        return final_analysis;
     
-
-async def transcribe_audio(audio_path):
+async def transcribe_audio(audio_url):
     if not whisper_model:
-        print("Transcription service is unavailable.")
+        print("[TRANSCRIPT ERROR] Transcription service is unavailable (Model not loaded).")
         raise HTTPException(status_code=503, detail="Transcription service is unavailable.")
         
-    def downloadAudioFromUrl(audio_path):
-        print(f"Downloading Audio..")
+    def downloadAudioFromUrl(url):
+        print(f"[TRANSCRIPT] Downloading audio from URL")
         try:
-            response = requests.get(audio_path, timeout=60) # Sync download
+            response = requests.get(url, timeout=60)
             response.raise_for_status()
         except Exception as e:
-            print("Error While Downloading Audio")
+            print(f"[TRANSCRIPT ERROR] Download failed: {e}")
             raise RuntimeError(f"Download failed: {e}")
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-            tmp.write(response.content)
-            print("Audio Downloaded.")
-            return tmp.name
-            
-      
-    try:
-        print("Triggered transcribe_audio()")
-        audio_path = await asyncio.to_thread(downloadAudioFromUrl, audio_path)
+
+        tmp = tempfile.NamedTemporaryFile(dir='.', delete=False, suffix=".wav")
         try:
-            transcript_text = None
-            for tries in range(1, 4): 
-                try:
-                    print(f"Starting Whisper Transcription, attempt: {tries}")
-                    with whisper_model_lock:
-                        result = whisper_model.transcribe(audio_path)
-                        transcript_text = result["text"]
-                    if transcript_text: break 
-                except Exception as e:
-                    print(f"Whisper attempt {tries} failed: {e}")
-                    await asyncio.sleep(1)
-
-            if not transcript_text:
-                raise HTTPException(status_code=500, detail="Transcription failed after retries")
-            return encrypt_text(transcript_text)
+            tmp.write(response.content)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+            return tmp.name
         finally:
-            if audio_path and os.path.exists(audio_path):
-                os.unlink(audio_path) 
-    except Exception as e:
-        print(f"Processing Failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+            tmp.close() 
+            
+    def run_whisper():
+        with whisper_model_lock:
+            return whisper_model.transcribe(audio_path, fp16=False)
+      
+    audio_path = None
+    try:
+        print("[TRANSCRIPT] Triggered download and transcribe...")
+        audio_path = await asyncio.to_thread(downloadAudioFromUrl, audio_url)
+        
+        transcript_text = None
+        for tries in range(1, 4): 
+            try:
+                print(f"[TRANSCRIPT] Starting Whisper transcription (Attempt {tries})...")
+                result = await asyncio.to_thread(run_whisper)
+                transcript_text = result["text"]
+                
+                if transcript_text: 
+                    break 
+            except Exception as e:
+                print(f"[WARNING] Whisper attempt {tries} failed: {e}")
+                await asyncio.sleep(1)
 
+        if not transcript_text:
+            raise HTTPException(status_code=500, detail="Transcription failed after retries")
+        
+        return transcript_text
+
+    except Exception as e:
+        print(f"[TRANSCRIPT ERROR] Processing Failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        if audio_path and os.path.exists(audio_path):
+            try:
+                os.unlink(audio_path)
+                print(f"[CLEANUP] Deleted temp file")
+            except Exception as e:
+                print(f"[CLEANUP WARNING] Failed to delete temp file: {e}")

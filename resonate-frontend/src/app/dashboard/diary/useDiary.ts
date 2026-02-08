@@ -1,5 +1,5 @@
 // TanStackQueries Realted to Diary and it's Entries
-import API_URL from "@/components/utils/getApiUrl";
+import {API_URL} from "@/components/utils/getApiUrl";
 import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";

@@ -1,14 +1,9 @@
 from fastapi import FastAPI, HTTPException, Body, BackgroundTasks
 import os
-import whisper
 from pydantic import BaseModel
-import threading
-import tempfile
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
 from dotenv import load_dotenv
-import asyncio
-import requests
 import httpx
 
 from utils.helperFunction import encrypt_text, decrypt_text
@@ -18,6 +13,7 @@ app = FastAPI()
 load_dotenv()
 
 HEADERS = {}
+node_backend_url = os.getenv("NODE_BACKEND_URL")
 
 # Define BaseModel
 class AnalyzePayload(BaseModel):
@@ -31,38 +27,50 @@ class AnalyzePayload(BaseModel):
     audioUrl: str  
     transcript: str 
     userId: str
-    entryId: str # Added this to track the entry ID
+    entryId: str 
 
 # This function handles the logic in the background
 async def process_background_analysis(payload: AnalyzePayload):
-    print(f"Background Task Started for Audio ID: {payload.entryId}")
+    print(f"\n[BACKGROUND] Task Started | Entry ID: {payload.entryId} | User ID: {payload.userId}")
     transcription = payload.transcript
-    
     try:
         if not transcription:
-            print("No transcript found, starting transcription...")
+            print(f"[TRANSCRIPT] No transcript provided. Starting transcription")
             transcription = await transcribe_audio(payload.audioUrl)
+            print(f"[TRANSCRIPT] Transcription completed for Entry ID: {payload.entryId}")
+        else:
+            print(f"[TRANSCRIPT] Using provided transcript for Entry ID: {payload.entryId}")
+            transcription = decrypt_text(transcription)
+            
+        print(f"[AI ANALYSIS] Starting full analysis for Entry ID: {payload.entryId}...")
+        model_results = await get_full_analysis(transcription, payload)
         
-        model_results = await get_full_analysis(encrypt_text(transcription), payload)
+        if payload.transcript == "" or not payload.transcript: 
+            model_results["transcript"] = encrypt_text(transcription)
+        print(f"[AI ANALYSIS] Analysis completed.")
         
-        model_results["transcript"] = transcription
-        print("Analyze completed, constructed Analysis Results: ", model_results)
-        
-        node_backend_url = os.getenv("NODE_BACKEND_URL")
         async with httpx.AsyncClient() as client:
+            # Structure of model_results
+            # 
             expressPayload = {
                 "analysis" : model_results,
                 "status" : payload.model_dump()
             }
-            response = await client.post(f"{node_backend_url}/audio/handleAiResult", json=expressPayload)
-            print("Sent to Express:", response.status_code)
+            print(f"[WEBHOOK] Sending success payload to Express")
+            response = await client.post(f"{node_backend_url}/api/webhooks/handleAiResult", json=expressPayload)
+            print(f"[WEBHOOK] Success Response Status: {response.status_code}")
             
     except Exception as e:
-        print(f"Background Processing Failed for {payload.entryId}: {e}")
+        print(f"[ERROR] Background Processing Failed for Entry ID: {payload.entryId} | Error: {e}")
+        async with httpx.AsyncClient() as client:
+            expressPayload = {"status" : payload.model_dump() , "analysis" : "failed"}
+            print(f"[WEBHOOK] Sending failure payload to Express...")
+            response = await client.post(f"{node_backend_url}/api/webhooks/handleAiResult", json=expressPayload)
+            print(f"[WEBHOOK] Failure Response Status: {response.status_code}")
 
 @app.post("/analyze")
 async def startAnalyse(payload: AnalyzePayload, background_tasks: BackgroundTasks):
-    print("Received Analyze Request. Offloading to background task.")
+    print(f"[API] Received Analyze Request for Entry ID: {payload.entryId}. Offloading to background task.")
     # Add the processing function to background tasks
     background_tasks.add_task(process_background_analysis, payload)
     # Return immediately

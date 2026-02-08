@@ -1,7 +1,7 @@
 import axios from "axios";
 import { verifyToken } from "@clerk/backend";
 import { createClient } from "@supabase/supabase-js";
-import { decrypt_transcription } from "../Utils/DecryptTranscription.js";
+import { decrypt_transcription } from "../utils/decryptTranscription.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -15,13 +15,12 @@ const getUserId = async (token) => {
   return decoded.sub
 }
 
-
 export const createEntry = async (req, res) => {
-  if (!req.file) return res.json({ status: false, message: "Audio file is required" });
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.json({ status: false, message: "Authorization token is required" });
-
   try {
+    if (!req.file) return res.json({ status: false, message: "Audio file is required" });
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return res.json({ status: false, message: "Authorization token is required" });
+
     const userId = await getUserId(token)
     const fileName = `${userId}/${Date.now()}-audio.wav`;
     const filebuffer = req.file.buffer;
@@ -117,7 +116,7 @@ export const dispatchAnalysis = async (entryId, userId) => {
 
     const { data: entryDetails, error } = await supabase
       .from("DiaryEntry")
-      .select("transcript, audio_path, ai_summary, tags, mood_labels, reflections, suggestions, mood_scores, goals, status")
+      .select("transcript, audio_path, ai_summary, tags, mood_labels, reflections, suggestions, mood_scores, goals, status, isGoalAdded")
       .eq('user_id', userId)
       .eq('entry_id', entryId)
       .maybeSingle()
@@ -135,7 +134,7 @@ export const dispatchAnalysis = async (entryId, userId) => {
         .eq('entry_id', entryId)
     }
 
-    const { transcript, audio_path, ai_summary, tags, mood_scores, reflections, suggestions, goals } = entryDetails || {};
+    const { transcript, audio_path, ai_summary, tags, mood_scores, reflections, suggestions, goals, isGoalAdded } = entryDetails || {};
     const hasTranscript = !!transcript
     let signedAudioUrl = "";
     if (!hasTranscript && audio_path) {
@@ -153,17 +152,17 @@ export const dispatchAnalysis = async (entryId, userId) => {
       hasTranscript: hasTranscript,
       hasSummary: !!ai_summary,
       hasTags: !!tags && tags.length > 0,
-      hasMoodScores: !!mood_scores && mood_scores.length > 0,
+      hasMoodScores: mood_scores ? Object.keys(mood_scores).length > 0 : false,
       hasReflections: !!reflections,
       hasSuggestions: !!suggestions,
-      hasGoals: !!goals && goals.length > 0,
+      hasGoals: !!goals && goals.toLowerCase().trim() !== 'none detected',
       audioUrl: signedAudioUrl,
       transcript: transcript || "",
       userId: userId,
-      entryId: entryId
+      entryId: entryId,
+      isGoalAdded: isGoalAdded
     };
     console.log("Triggering FastApi for Analysis (Fire and Forget)");
-    console.log("fastApiPayLoad = ", fastApiPayLoad)
     // Call to FastApi to Analyze 
     await axios.post("http://localhost:8000/analyze", fastApiPayLoad)
     console.log("FastApi task dispatched successfully");
@@ -214,7 +213,7 @@ export const getEntryById = async (req, res) => {
     const userId = await getUserId(token)
     const { data: entryDetails, error: entryError } = await supabase
       .from('DiaryEntry')
-      .select('title, audio_path, transcript, ai_summary ,tags, mood_labels, reflections, suggestions, mood_scores, goals, status')
+      .select('title, audio_path, transcript, ai_summary ,tags, mood_labels, reflections, suggestions, mood_scores, goals, status, isGoalAdded')
       .eq('entry_id', entryId)
       .eq('user_id', userId)
       .maybeSingle()
@@ -249,7 +248,29 @@ export const getEntryById = async (req, res) => {
       delete entryDetails.audio_path;
     }
 
-    console.log("Entry Fetched successfully")
+    console.log("Entry Fetched successfully");
+    // const entryDetailsTemplate = {
+    //   title: "",
+    //   transcript: "",
+    //   ai_summary: "",
+    //   tags: [],
+    //   mood_labels: [],
+    //   reflections: "",
+    //   suggestions: "",
+    //   mood_scores: { 
+    //     joy: 0, 
+    //     calm: 0, 
+    //     fear: 0, 
+    //     love: 0, 
+    //     anger: 0, 
+    //     sadness: 0, 
+    //     surprise: 0 
+    //   },
+    //   goals: "",
+    //   status: "", 
+    //   audioUrl: "",
+    // isGoalAdded: ""
+    // };
     return res.json({ status: true, entryDetails })
   } catch (error) {
     console.log(`Error while fetching Data : ${error}`)
@@ -301,7 +322,7 @@ export const deleteEntry = async (req, res) => {
 
   const entryId = req.query.entryId;
   const userId = await getUserId(token)
-  console.log("entry" ,entryId)
+  console.log("entry", entryId)
   console.log("user", userId)
   try {
     // Delete the DB Entry
