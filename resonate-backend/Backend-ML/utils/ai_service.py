@@ -12,7 +12,11 @@ from utils.helperFunction import extract_json, encrypt_text, decrypt_text
 load_dotenv()
 
 LLM_URL = os.getenv('LLM_API_URL')
-MODEL = os.getenv('LLM_MODEL_ID')
+MODEL = os.getenv('LLM_MODEL_ID', '')
+
+if not LLM_URL or not MODEL:
+    print("LLM_URL or MODEL is not present")
+
 is_gemini = 'gemini' in MODEL.lower()
 
 try:
@@ -121,7 +125,7 @@ async def get_goal(client: httpx.AsyncClient, text: str):
     return await send_payload_to_model(client, system_prompt,user_content, 0.2)
 
 MAX_RETRIES = 3
-async def get_combined_analysis(client, text,required_keys):
+async def get_combined_analysis(client, text, required_keys):
     keys = {
         "ai_summary": '"ai_summary": Concise summary of the text (keep it shorter then actual text).',
         "tags": ' "tags": Array of 3-5 keywords.',
@@ -130,24 +134,27 @@ async def get_combined_analysis(client, text,required_keys):
         "suggestions": '"suggestions": One actionable suggestion.',
         "goals": '"goals": Identify a specific objective or "None detected".'
     }
-    system_prompt = """You are a precise JSON extractor and psychologist. Analyze the text and return ONE JSON object.
-                    Required Keys:
+    requiredAnalysis = f"""
+                        {'\n'.join(keys[key] for key in required_keys)}
                     """
     user_content = f"TEXT: '{text}'\nINSTRUCTIONS: Return ONLY the JSON object with requried keys only."
-    system_prompt += f"""
-                    {keys['ai_summary']}\n{keys['mood_scores']}\n{keys['tags']}\n{keys['reflections']}\n{keys['suggestions']}\n{keys['goals']}
-                """
+    
     accumulated_results = {}
     for attempt in range(MAX_RETRIES):
         try:
+            system_prompt = f"""You are a precise JSON extractor and psychologist. Analyze the text and return ONE JSON object.
+                                Required Keys:
+                                {requiredAnalysis}
+                            """
             print("[AI SERVICE] Performing combined analysis...: Attempt:", attempt + 1)
             results  = await send_payload_to_model(client, system_prompt,user_content, 0.2)
             if isinstance(results, dict):
                 accumulated_results.update(results)
             isCompleted = True
+            requiredAnalysis = ""
             for key in required_keys:
                 if key not in accumulated_results:
-                    system_prompt += f"{keys[key]}\n"
+                    requiredAnalysis += f"{keys[key]}\n"
                     isCompleted  = False
             if isCompleted:
                 print("Successfully")
@@ -178,7 +185,18 @@ async def get_full_analysis(text: str, status):
     async with httpx.AsyncClient(timeout=180.0) as client:
         results = {}
         if is_gemini:
-            results = await get_combined_analysis(client, text, ["ai_summary", "tags", "mood_scores", "reflections", "suggestions", "goals"])    
+            required_keys = [
+                key for key, present in [
+                        ("ai_summary", status.hasSummary),
+                        ("tags", status.hasTags),
+                        ("mood_scores", status.hasMoodScores),
+                        ("reflections", status.hasReflections),
+                        ("suggestions", status.hasSuggestions),
+                        ("goals", status.hasGoals)
+                    ] if not present
+                ]
+                            
+            results = await get_combined_analysis(client, text, required_keys)    
         else:
             print("[AI ANALYSIS] Starting concurrent analysis tasks...")
             tasks = [

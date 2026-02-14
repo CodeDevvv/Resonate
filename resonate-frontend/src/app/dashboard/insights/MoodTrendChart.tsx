@@ -1,113 +1,177 @@
-"use client";
-
-import { useAuth } from '@clerk/nextjs';
-import React, { useEffect, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useChartData } from '../../../userQueries/userQuery';
 import AiLoader from '@/components/AiLoader';
+import { useMemo } from 'react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 
-const MoodTrendChart = () => {
-  const { getToken } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
-  interface ProcessedData {
-    date: string;
-    "Net Mood": number;
-  }
-  const [moodTrendData, setMoodTrendData] = useState<ProcessedData[]>([]);
+interface MoodScores {
+  joy: number;
+  love: number;
+  calm: number;
+  sadness: number;
+  anger: number;
+  fear: number;
+}
 
-  useEffect(() => {
-    const fetchToken = async () => {
-      const fetchedToken = await getToken();
-      setToken(fetchedToken);
-    };
-    fetchToken();
-  }, [getToken]);
+interface ChartEntry {
+  created_at: string;
+  mood_scores?: MoodScores;
+}
 
-  const { data: chartData, error: chartError, isLoading } = useChartData(token);
+interface ProcessedData {
+  date: string;
+  fullDate: string;
+  netMood: number;
+}
 
-  useEffect(() => {
-    if (chartData) {
-      interface MoodScores {
-        joy: number;
-        love: number;
-        calm: number;
-        sadness: number;
-        anger: number;
-        fear: number;
-      }
+interface propsType {
+  data: ChartEntry[],
+  isLoading: boolean,
+  isError: boolean
+}
 
-      interface ChartEntry {
-        created_at: string;
-        mood_scores?: MoodScores;
-      }
+const MoodTrendChart = ({ data, isLoading, isError }: propsType) => {
 
-      interface ProcessedData {
-        date: string;
-        "Net Mood": number;
-      }
+  const moodTrendData = useMemo(() => {
+    if (!data || !Array.isArray(data)) return [];
 
-      const processedData: ProcessedData[] = (chartData as ChartEntry[]).map((entry: ChartEntry) => {
-        const moods = entry.mood_scores;
-        const netScore = moods
-          ? (moods.joy + moods.love + moods.calm) - (moods.sadness + moods.anger + moods.fear)
-          : 0;
+    const processed = data.map((entry: ChartEntry) => {
+      const moods = entry.mood_scores || { joy: 0, love: 0, calm: 0, sadness: 0, anger: 0, fear: 0 };
+      const netScore = (moods.joy + moods.love + moods.calm) - (moods.sadness + moods.anger + moods.fear);
+      const dateObj = new Date(entry.created_at);
 
-        return {
-          date: new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          "Net Mood": netScore,
-        };
-      });
-      setMoodTrendData(processedData.reverse());
-    }
-  }, [chartData]);
+      return {
+        date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        fullDate: dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+        netMood: Number(netScore.toFixed(2)),
+      };
+    });
+
+    return processed.reverse();
+  }, [data]);
 
   if (isLoading) {
     return (
-      <div className="h-48 flex items-center justify-center">
-        <AiLoader label="Loading data..." />
+      <div className="flex h-[300px] w-full items-center justify-center rounded-xl border bg-card/50">
+        <AiLoader />
       </div>
     );
   }
 
-  if (chartError) {
+  if (isError) {
     return (
-      <div className="h-48 flex items-center justify-center text-destructive">
-        Error: Could not load chart data.
+      <div className="flex h-[300px] w-full items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
+        <p>Could not load mood trends.</p>
       </div>
     );
   }
 
   if (moodTrendData.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-muted-foreground">
-        Not enough data to display trend.
+      <div className="flex h-[300px] w-full flex-col items-center justify-center rounded-xl border bg-card p-6 text-center shadow-sm">
+        <h3 className="mb-1 font-semibold">No Trends Yet</h3>
+        <p className="text-sm text-muted-foreground">
+          Journal more often to see your emotional trajectory.
+        </p>
       </div>
     );
   }
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <AreaChart data={moodTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-        <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-        <YAxis fontSize={12} tickLine={false} axisLine={false} />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: 'hsl(var(--background))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '0.5rem',
-          }}
-        />
-        <Area
-          type="monotone"
-          dataKey="Net Mood"
-          strokeWidth={2}
-          stroke="hsl(var(--primary))"
-          fill="hsl(var(--primary))"
-          fillOpacity={0.1}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div className="flex flex-col space-y-4 rounded-xl border bg-card p-6 shadow-sm">
+      <div className="flex flex-col space-y-1">
+        <h3 className="font-semibold leading-none tracking-tight">Emotional Trajectory</h3>
+        <p className="text-sm text-muted-foreground">
+          Net positivity calculated over time.
+        </p>
+      </div>
+
+      <div className="h-[200px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={moodTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.6} />
+                <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
+
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="var(--border)"
+              strokeOpacity={0.6}
+            />
+
+            <XAxis
+              dataKey="date"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: 'var(--muted-foreground)' }}
+              minTickGap={30}
+            />
+
+            <YAxis
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: 'var(--muted-foreground)' }}
+            />
+
+            <ReferenceLine
+              y={0}
+              stroke="var(--muted-foreground)"
+              strokeDasharray="3 3"
+              opacity={0.5}
+            />
+
+            <Tooltip
+              cursor={{ stroke: 'var(--primary)', strokeWidth: 2 }}
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload as ProcessedData;
+                  return (
+                    <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-md">
+                      <p className="mb-1 text-xs text-muted-foreground">{data.fullDate}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-popover-foreground">
+                          Net Mood: {data.netMood}
+                        </span>
+                        <span className={`text-xs font-medium ${data.netMood > 0 ? 'text-green-500' :
+                          data.netMood < 0 ? 'text-red-500' : 'text-yellow-500'
+                          }`}>
+                          {data.netMood > 0.5 ? '(Positive)' :
+                            data.netMood < -0.5 ? '(Negative)' : '(Neutral)'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+
+            <Area
+              type="monotone"
+              dataKey="netMood"
+              stroke="var(--primary)"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#colorMood)"
+              animationDuration={1500}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 };
 

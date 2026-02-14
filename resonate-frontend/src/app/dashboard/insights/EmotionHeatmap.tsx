@@ -1,98 +1,117 @@
-"use client";
-
-import AiLoader from '@/components/AiLoader';
-import { useHeatmapData } from '@/userQueries/userQuery';
-import { useAuth } from '@clerk/nextjs';
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { ResponsiveCalendar } from "@nivo/calendar";
-import toast from 'react-hot-toast';
+import AiLoader from '@/components/AiLoader';
 
-interface NivoHeatmapData {
-    day: string;
-    value: number;
+interface RawHeatmapEntry {
+  day: string;
+  moods: Record<string, number>;
 }
 
-const EmotionHeatmap = () => {
-    const { getToken } = useAuth();
-    const [token, setToken] = useState<string | null>(null);
-    const [processedData, setProcessedData] = useState<NivoHeatmapData[]>([]);
+interface EmotionHeatmapProps {
+  data?: RawHeatmapEntry[]; 
+  isLoading: boolean
+  isError: boolean;
+}
 
-    useEffect(() => {
-        async function fetchToken() {
-            const fetchedToken = await getToken();
-            setToken(fetchedToken);
-        }
-        fetchToken();
-    }, [getToken]);
+const EmotionHeatmap = ({ data, isLoading, isError }: EmotionHeatmapProps) => {
 
-    const { data: rawHeatmapData, error: dataError, isLoading } = useHeatmapData(token);
+  const processedData = useMemo(() => {
+    if (!data || !Array.isArray(data)) return [];
 
-    useEffect(() => {
-        if (rawHeatmapData) {
-            interface RawHeatmapEntry {
-                day: string;
-                moods: Record<string, number>;
-            }
+    return data.map((entry: RawHeatmapEntry) => {
+      const moods = entry.moods || {};
+      const moodValues = Object.values(moods);
+      
+      const dominantMoodScore = moodValues.length > 0 ? Math.max(...moodValues) : 0;
 
-            const transformedData = (rawHeatmapData as RawHeatmapEntry[]).map((entry: RawHeatmapEntry): NivoHeatmapData => {
-                const moods: Record<string, number> | undefined = entry.moods;
-                const dominantMoodScore: number = moods ? Math.max(...Object.values(moods)) : 0;
+      return {
+        day: entry.day,
+        value: Number(dominantMoodScore.toFixed(2)),
+      };
+    });
+  }, [data]);
 
-                return {
-                    day: entry.day,
-                    value: dominantMoodScore,
-                };
-            });
-            setProcessedData(transformedData);
-        }
-    }, [rawHeatmapData]);
+  const { fromDate, toDate } = useMemo(() => {
+    const year = new Date().getFullYear();
+    return { fromDate: `${year}-01-01`, toDate: `${year}-12-31` };
+  }, []);
 
-    if (isLoading) {
-        return (
-            <div className="h-48 flex items-center justify-center">
-                <AiLoader label="Loading heatmap..." />
-            </div>
-        );
-    }
-
-    if (dataError) {
-        toast.error(dataError.message);
-        return (
-            <div className="h-48 flex items-center justify-center text-destructive">
-                Error: Could not load heatmap data.
-            </div>
-        );
-    }
-
-    if (processedData.length === 0) {
-        return (
-            <div className="h-48 flex items-center justify-center text-muted-foreground">
-                Not enough data to display heatmap.
-            </div>
-        );
-    }
-
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const fromDate = `${currentYear}-01-01`;
-    const toDate = `${currentYear}-12-31`;
-
+  if (isLoading) {
     return (
-        <div className="h-48">
-            <ResponsiveCalendar
-                data={processedData}
-                from={fromDate}
-                to={toDate}
-                emptyColor="hsl(var(--muted) / 0.15)"
-                colors={['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e']}
-                margin={{ top: 20, right: 0, bottom: 0, left: 20 }}
-                monthBorderColor="transparent"
-                dayBorderWidth={2}
-                dayBorderColor="hsl(var(--background))"
-                legends={[]}
-            />
-        </div>
+      <div className="flex h-64 w-full items-center justify-center rounded-xl border bg-card/50">
+        <AiLoader />
+      </div>
     );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-64 w-full items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
+        <p>Could not load heatmap data.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col space-y-4 rounded-xl border bg-card p-6 shadow-sm">
+      <div className="flex flex-col space-y-1">
+        <h3 className="font-semibold leading-none tracking-tight">Mood Consistency</h3>
+        <p className="text-sm text-muted-foreground">
+          Your emotional intensity tracked over the current year.
+        </p>
+      </div>
+
+      <div className="h-[200px] w-full">
+        {processedData.length > 0 ? (
+          <ResponsiveCalendar
+            data={processedData}
+            from={fromDate}
+            to={toDate}
+            emptyColor="var(--muted)" 
+            colors={[
+              '#dcfce7', // Very light green
+              '#86efac', 
+              '#4ade80', 
+              '#22c55e', 
+              '#15803d'  // Dark green
+            ]}
+            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+            yearSpacing={40}
+            monthBorderColor="transparent"
+            dayBorderWidth={2}
+            dayBorderColor="var(--card)" 
+            
+            tooltip={({ day, value, color }) => (
+              <div
+                className="rounded-md border border-border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-md"
+                style={{ borderLeft: `4px solid ${color}` }}
+              >
+                <span className="font-semibold">{day}</span>: Intensity {value}
+              </div>
+            )}
+            
+            theme={{
+              text: { 
+                fill: "var(--foreground)",
+                fontSize: 12,
+              },
+              tooltip: { 
+                container: { 
+                  background: "var(--popover)", 
+                  color: "var(--popover-foreground)",
+                  fontSize: "12px"
+                } 
+              }
+            }}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            No mood data recorded yet for this year.
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default EmotionHeatmap;

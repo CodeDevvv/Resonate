@@ -47,47 +47,49 @@
 :root {
   --radius: 0.625rem;
   --font-rampart: "Rampart One", sans-serif;
-  /* Background + Text */
-  --background: oklch(0.985 0.003 280);
-  /* soft white */
-  --foreground: oklch(0.16 0.02 260);
-  /* dark slate */
 
-  /* Cards / Surfaces */
-  --card: oklch(0.97 0.002 280);
-  /* elevated surface */
+  /* --- LIGHT THEME (Crisp & Modern) --- */
+  
+  /* Background: Pure white for clarity */
+  --background: oklch(1 0 0);
+  /* Foreground: Deep Zinc/Slate (High Contrast) */
+  --foreground: oklch(0.145 0.02 260);
+
+  /* Cards: Very subtle grey tint to separate from white bg */
+  --card: oklch(0.99 0.002 260);
   --card-foreground: var(--foreground);
 
-  /* Primary Branding (Indigo/Cyan balance) */
-  --primary: oklch(0.45 0.09 260);
-  /* balanced indigo */
-  --primary-foreground: oklch(0.98 0.002 280);
-  /* soft white */
+  /* Popovers */
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
 
-  /* Secondary Elements */
-  --secondary: oklch(0.93 0.01 260);
-  --secondary-foreground: var(--primary);
+  /* Primary: Vibrant Deep Indigo */
+  --primary: oklch(0.48 0.18 265);
+  --primary-foreground: oklch(0.98 0 0);
 
-  /* Accent UI (Cyan Hint) */
-  --accent: oklch(0.85 0.07 200);
-  /* gentle cyan */
-  --accent-foreground: var(--foreground);
+  /* Secondary: Soft Slate Blue */
+  --secondary: oklch(0.95 0.02 260);
+  --secondary-foreground: oklch(0.35 0.1 260);
 
-  /* Muted UI / Placeholders */
-  --muted: oklch(0.92 0.005 260);
-  --muted-foreground: oklch(0.45 0.015 260);
+  /* Accent: Clean light blue for hover states */
+  --accent: oklch(0.94 0.03 260);
+  --accent-foreground: oklch(0.3 0.1 260);
 
-  /* Danger/Destructive */
-  --destructive: oklch(0.65 0.25 30);
-  /* clear red-orange */
+  /* Muted: Neutral grays */
+  --muted: oklch(0.96 0.005 260);
+  --muted-foreground: oklch(0.55 0.02 260);
 
-  /* Inputs + Borders + Focus */
-  --border: oklch(0.9 0.003 260);
-  --input: var(--border);
-  --ring: oklch(0.55 0.02 260);
+  /* Destructive: Modern Red */
+  --destructive: oklch(0.58 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  /* Borders: Subtle but visible */
+  --border: oklch(0.9 0.01 260);
+  --input: oklch(0.9 0.01 260);
+  --ring: oklch(0.48 0.18 265); /* Matches Primary */
 
   /* Sidebar */
-  --sidebar: oklch(0.96 0.002 280);
+  --sidebar: oklch(0.985 0.002 260);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
@@ -96,51 +98,56 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 
-  /* Charts (Emotion visualizations) */
-  --chart-1: oklch(0.6 0.17 120);
-  /* green */
-  --chart-2: oklch(0.65 0.15 200);
-  /* blue */
-  --chart-3: oklch(0.58 0.15 270);
-  /* violet */
-  --chart-4: oklch(0.75 0.2 90);
-  /* yellow-green */
-  --chart-5: oklch(0.7 0.2 20);
-  /* orange-red */
+  /* Charts: Optimized for White Backgrounds */
+  --chart-1: oklch(0.6 0.18 25);   /* Red/Orange */
+  --chart-2: oklch(0.55 0.15 180); /* Teal */
+  --chart-3: oklch(0.45 0.15 260); /* Indigo */
+  --chart-4: oklch(0.65 0.18 95);  /* Yellow/Lime */
+  --chart-5: oklch(0.6 0.15 300);  /* Pink/Magenta */
 }
 
-
 .dark {
-  --background: oklch(0.14 0.02 260);
-  /* deep slate */
-  --foreground: oklch(0.98 0.002 280);
-  /* high contrast text */
+  /* --- DARK THEME (Rich Midnight/Navy) --- */
 
-  --card: oklch(0.2 0.025 260);
+  /* Background: Deep rich slate/navy (Not flat black) */
+  --background: oklch(0.12 0.03 260);
+  /* Foreground: Soft white (Reduced eye strain) */
+  --foreground: oklch(0.98 0.005 260);
+
+  /* Cards: Slightly lighter surface */
+  --card: oklch(0.16 0.035 260);
   --card-foreground: var(--foreground);
 
-  --primary: oklch(0.75 0.07 260);
-  /* light indigo */
-  --primary-foreground: var(--background);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
 
-  --secondary: oklch(0.3 0.02 260);
-  --secondary-foreground: var(--foreground);
+  /* Primary: Bright Indigo/Violet (Pops on dark) */
+  --primary: oklch(0.65 0.18 265);
+  --primary-foreground: oklch(0.1 0.03 260);
 
-  --accent: oklch(0.55 0.08 200);
-  /* soft cyan */
-  --accent-foreground: var(--background);
+  /* Secondary: Dark slate */
+  --secondary: oklch(0.22 0.04 260);
+  --secondary-foreground: oklch(0.9 0.02 260);
 
-  --muted: oklch(0.25 0.015 260);
-  --muted-foreground: oklch(0.7 0.015 260);
+  /* Accent: Subtle glow for hovers */
+  --accent: oklch(0.25 0.04 260);
+  --accent-foreground: oklch(0.95 0.02 260);
 
-  --destructive: oklch(0.7 0.22 20);
-  /* red-orange */
+  /* Muted */
+  --muted: oklch(0.2 0.02 260);
+  --muted-foreground: oklch(0.7 0.02 260);
 
-  --border: oklch(0.25 0.01 260);
-  --input: oklch(0.25 0.015 260);
-  --ring: oklch(0.55 0.015 260);
+  /* Destructive */
+  --destructive: oklch(0.45 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
 
-  --sidebar: oklch(0.2 0.025 260);
+  /* Borders: Darker, blends well */
+  --border: oklch(0.22 0.03 260);
+  --input: oklch(0.22 0.03 260);
+  --ring: oklch(0.5 0.18 265);
+
+  /* Sidebar */
+  --sidebar: oklch(0.11 0.03 260);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
@@ -149,11 +156,12 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 
-  --chart-1: oklch(0.55 0.2 120);
-  --chart-2: oklch(0.6 0.18 200);
-  --chart-3: oklch(0.5 0.15 270);
-  --chart-4: oklch(0.65 0.18 90);
-  --chart-5: oklch(0.6 0.22 20);
+  /* Charts: Optimized for Dark Backgrounds (Lighter/Brighter) */
+  --chart-1: oklch(0.65 0.2 25);    /* Bright Orange */
+  --chart-2: oklch(0.7 0.15 180);   /* Cyan/Teal */
+  --chart-3: oklch(0.65 0.18 260);  /* Lavender */
+  --chart-4: oklch(0.75 0.18 95);   /* Lime */
+  --chart-5: oklch(0.7 0.18 300);   /* Pink */
 }
 
 .font-rampart {

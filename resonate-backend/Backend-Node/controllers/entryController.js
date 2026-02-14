@@ -1,19 +1,6 @@
 import axios from "axios";
-import { verifyToken } from "@clerk/backend";
-import { createClient } from "@supabase/supabase-js";
-import { decrypt_transcription } from "../utils/decryptTranscription.js";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-const getUserId = async (token) => {
-  const decoded = await verifyToken(token, {
-    secretKey: process.env.CLERK_SECRET_KEY
-  })
-  return decoded.sub
-}
+import { getUserId, supabase } from "../utils/config.js";
+import { decrypt } from "../utils/encryption.js";
 
 export const createEntry = async (req, res) => {
   try {
@@ -224,11 +211,11 @@ export const getEntryById = async (req, res) => {
     }
 
     try {
-      entryDetails.transcript = decrypt_transcription(entryDetails.transcript);
-      entryDetails.ai_summary = decrypt_transcription(entryDetails.ai_summary);
-      entryDetails.reflections = decrypt_transcription(entryDetails.reflections);
-      entryDetails.suggestions = decrypt_transcription(entryDetails.suggestions);
-      entryDetails.goals = decrypt_transcription(entryDetails.goals);
+      entryDetails.transcript = decrypt(entryDetails.transcript);
+      entryDetails.ai_summary = decrypt(entryDetails.ai_summary);
+      entryDetails.reflections = decrypt(entryDetails.reflections);
+      entryDetails.suggestions = decrypt(entryDetails.suggestions);
+      entryDetails.goals = decrypt(entryDetails.goals);
     } catch (decryptError) {
       console.error("Decryption failed:", decryptError);
       return res.json({ status: false, message: "Decryption Error!" });

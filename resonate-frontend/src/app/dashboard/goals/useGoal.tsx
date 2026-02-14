@@ -31,16 +31,12 @@ export const useFetchGoal = () => {
     return useQuery({
         queryKey: ['goalEntries', userId],
         queryFn: async () => {
-            const token = await getToken();
-            if (!token) {
-                throw new Error("No authentication token found");
-            }
-            const response = await axios.get(`${API_URL}/goals/getGoals`, {
+            const { data } = await axios.get(`${API_URL}/goals/getGoals`, {
                 headers: {
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${await getToken()}`
                 }
             });
-            const { status, message, goalEntries } = response.data;
+            const { status, message, goalEntries } = data;
             if (status) {
                 return goalEntries;
             }

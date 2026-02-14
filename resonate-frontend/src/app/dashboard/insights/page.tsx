@@ -1,61 +1,47 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
-import { LineChart, Flame, BarChart3, ListOrdered } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Sparkles } from "lucide-react";
 import MoodTrendChart from "./MoodTrendChart";
 import EmotionHeatmap from "./EmotionHeatmap";
 import FrequentTopics from "./FrequentTopics";
+import { useInsights } from "./useInsights";
 
 const Insights = () => {
-  const [isMounted, setIsMounted] = useState(false)
+  const [isMounted, setIsMounted] = useState(false);
+  const { data, isLoading, isError } = useInsights()
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    setIsMounted(true);
+  }, []);
+
   if (!isMounted) {
-    return null
+    return null;
   }
 
-
   return (
-    <div className="max-w-full mx-auto p-8 space-y-10 mt-6 ml-72">
-      {/* Heading */}
-      <header>
-        <h1 className="text-4xl font-extrabold tracking-tight text-primary font-rampart mb-2 flex items-center gap-3">
-          <BarChart3 className="w-8 h-8 text-accent" />
+    <div className="min-h-screen space-y-8 p-8 pb-20 md:ml-72">
+
+      <header className="flex flex-col space-y-2">
+        <h1 className="font-rampart flex items-center gap-3 text-4xl font-extrabold tracking-tight text-primary">
+          <Sparkles className="h-8 w-8 text-yellow-500 fill-yellow-500/20" />
           AI Insights Dashboard
         </h1>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-lg text-muted-foreground">
           Your personal analytics, powered by AI. Visualize your moods, emotions, and journaling trends.
         </p>
       </header>
 
-      {/* Mood Trend Line */}
-      <Card className="p-4 md:p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <LineChart className="w-6 h-6 text-primary" />
-          <h2 className="text-2xl font-bold">Mood Trend (Last 7 Days)</h2>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <MoodTrendChart data={data?.chartData || []} isLoading={isLoading} isError={isError} />
         </div>
-        <MoodTrendChart />
-      </Card>
-
-      {/* Emotion Heatmap */}
-      <Card className="p-4 md:p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Flame className="w-6 h-6 text-primary" />
-          <h2 className="text-2xl font-bold">Emotion Heatmap</h2>
+        <div className="lg:col-span-1">
+          <FrequentTopics data={data?.topics} isLoading={isLoading} isError={isError} />
         </div>
-        <EmotionHeatmap />
-      </Card>
-
-      {/* Topic Frequency Chart */}
-      <Card className="p-4 md:p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <ListOrdered className="w-6 h-6 text-primary" />
-          <h2 className="text-2xl font-bold">Topic Frequency (Last 7 days)</h2>
+        <div className="lg:col-span-3">
+          <EmotionHeatmap data={data?.heatmapData} isLoading={isLoading} isError={isError} />
         </div>
-        <FrequentTopics />
-      </Card>
-
+      </div>
     </div>
   );
 };

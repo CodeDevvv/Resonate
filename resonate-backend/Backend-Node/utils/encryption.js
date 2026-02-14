@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-export const decrypt_transcription = (encryptedText) => {
+export const decrypt = (encryptedText) => {
     if (!encryptedText) return '';
 
     try {

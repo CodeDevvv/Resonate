@@ -277,7 +277,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
             <AddGoalDialog
                 open={isAddGoalDialogOpen}
                 onOpenChange={setAddGoalDialogOpen}
-                initialData={{ title: "Untitled Goal", description: entryDetails.goals || "" }}
+                initialData={{ title: "", description: entryDetails.goals || "" }}
                 onGoalUpdate={(payload) => handleAddGoal(payload)}
                 isPending={isPending}
                 isGoalUpdate={false}

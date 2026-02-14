@@ -1,10 +1,6 @@
 import express from "express"
-import { getChartData, getHeatmapData, getTopics } from "../controllers/insightController"
+import { getInsights } from "../controllers/insightController"
 
 const router = express.Router()
-
-router.get('/getChartData', getChartData)
-router.get('/getHeatmapData', getHeatmapData)
-router.get('/getFrequentTopics', getTopics)
-
+router.get('/getInsights', getInsights)
 export default router

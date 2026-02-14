@@ -3,7 +3,6 @@ import { promises as fs } from 'fs';
 
 export const getDailyQuote = async (req, res) => {
     try {
-        console.log("Fetching Thought of the day.")
         const filePath = path.join(__dirname, '..', 'Utils', 'daily_thoughts.json');
         const fileData = await fs.readFile(filePath, 'utf8')
 

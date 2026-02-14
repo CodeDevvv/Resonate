@@ -1,8 +1,6 @@
-from fastapi import FastAPI, HTTPException, Body, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks
 import os
 from pydantic import BaseModel
-from Crypto.Cipher import AES
-from Crypto.Protocol.KDF import scrypt
 from dotenv import load_dotenv
 import httpx
 
@@ -25,7 +23,7 @@ class AnalyzePayload(BaseModel):
     hasSuggestions: bool
     hasGoals: bool
     audioUrl: str  
-    transcript: str 
+    transcript: str | None = None
     userId: str
     entryId: str 
 

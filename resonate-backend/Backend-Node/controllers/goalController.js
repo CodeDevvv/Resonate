@@ -1,17 +1,4 @@
-import { verifyToken } from "@clerk/backend";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-const getUserId = async (token) => {
-    const decoded = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY
-    })
-    return decoded.sub
-}
+import { getUserId, supabase } from "../utils/config";
 
 export const addGoal = async (req, res) => {
     try {
@@ -116,7 +103,7 @@ export const updateGoal = async (req, res) => {
         currDate.setHours(0, 0, 0, 0)
         const getTarget = new Date(updateData.targetDate)
 
-        if (getTarget < currDate) { return res.json({ status: false, message: "target date cannot be in past!" }) }
+        if (!updateData.isCompleted && getTarget < currDate) { return res.json({ status: false, message: "target date cannot be in past!" }) }
 
         const { error: updateError } = await supabase
             .from('GoalEntry')

@@ -1,10 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-import { decrypt_transcription } from "../utils/decryptTranscription";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabase } from "../utils/config";
+import { decrypt } from "../utils/encryption";
 
 export const handleAiResult = async (req, res) => {
     try {
@@ -27,7 +22,7 @@ export const handleAiResult = async (req, res) => {
         let isCompleted = true
 
         const safeDecrypt = (text) => {
-            try { return decrypt_transcription(text); }
+            try { return decrypt(text); }
             catch (e) { console.error("Socket Decrypt Error:", e); return null; }
         };
 

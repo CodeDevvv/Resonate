@@ -46,15 +46,11 @@ const UpdateGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, in
             toast.error('Goal must have a title and target date.');
             return;
         }
-        if (isDateInPast(form.targetDate)) {
-            toast.error("Target date cannot be in the past.");
-            return;
-        }
-        const forbiddenTitles = ["Untitled", "Untitled Goal", "untitled"];
-
-        if (forbiddenTitles.includes(form.title.trim())) {
-            toast.error("Please update title.");
-            return;
+        if(!form.isCompleted) {
+            if (isDateInPast(form.targetDate)) {
+                toast.error("Target date cannot be in the past.");
+                return;
+            }
         }
         const payload = { ...form, goalId: initialData?.goalId }
         onGoalUpdate(payload)
@@ -67,8 +63,8 @@ const UpdateGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, in
                     <DialogTitle>Add New Goal</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <Input placeholder="Goal Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                    <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                    <Input placeholder="Add Goal Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="placeholder:italic placeholder:text-gray-400"/>
+                    <Textarea placeholder="Add Goal Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="placeholder:italic placeholder:text-gray-400/70"/>
                     <Input type="date" value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })} />
                 </div>
                 {isGoalUpdate &&
@@ -83,8 +79,8 @@ const UpdateGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, in
                         </label>
                     </div>}
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}><X className="w-4 h-4 mr-1" /> Cancel</Button>
-                    <Button onClick={handleSave} disabled={isPending}><Save className="w-4 h-4 mr-1" /> Save Goal</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)} className="hover:text-red-600 cursor-pointer"><X className="w-4 h-4 mr-1" /> Cancel</Button>
+                    <Button onClick={handleSave} disabled={isPending} className="cursor-pointer"><Save className="w-4 h-4 mr-1" /> Save Goal</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

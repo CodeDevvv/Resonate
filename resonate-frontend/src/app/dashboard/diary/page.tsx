@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import DiaryList from "./DairyList";
+import DiaryList from "./DiaryList";
 import AddEntry from "./AddEntry";
 
 const Diary = () => {
