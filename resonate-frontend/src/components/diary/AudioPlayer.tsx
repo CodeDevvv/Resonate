@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Pause, Play, RefreshCw, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import toast from 'react-hot-toast';
-import { confirm } from "../ConfirmDelete";
-import { useDeleteEntry } from "../useDiary";
 import { useRouter } from "next/navigation";
-import { useEntryID } from "./EntryIDContext";
+import { useDeleteEntry } from "@/hooks/use-diary";
+import { confirm } from "@/components/diary/DeleteEntryDialog";
+import { useEntryID } from "@/context/EntryContext";
 ;
 
 const AudioEntry = ({ audioUrl, entryTitle }: { audioUrl: string, entryTitle: string }) => {

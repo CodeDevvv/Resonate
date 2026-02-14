@@ -1,4 +1,4 @@
-import JoinButton from "@/components/JoinButton";
+import JoinButton from "@/components/shared/JoinButton";
 
 export default function Home() {
   return (

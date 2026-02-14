@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ResponsiveCalendar } from "@nivo/calendar";
-import AiLoader from '@/components/AiLoader';
+import AiLoader from '../shared/AiLoader';
 
 interface RawHeatmapEntry {
   day: string;

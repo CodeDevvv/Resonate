@@ -1,4 +1,4 @@
-import { API_URL } from "@/components/utils/getApiUrl"
+import { API_URL } from "@/lib/getApiUrl"
 import { useAuth } from "@clerk/nextjs"
 import { useQuery } from "@tanstack/react-query"
 import axios from "axios"

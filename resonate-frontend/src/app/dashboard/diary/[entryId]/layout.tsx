@@ -1,6 +1,6 @@
 "use client"
+import { EntryIDProvider } from "@/context/EntryContext";
 import { useParams } from "next/navigation"
-import { EntryIDProvider } from "./EntryIDContext"
 import { ReactNode } from "react";
 
 

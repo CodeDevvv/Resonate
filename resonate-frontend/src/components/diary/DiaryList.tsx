@@ -16,10 +16,10 @@ import {
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { FullscreenLoader } from "@/components/fullscreen-loader";
+import { useDeleteEntry, useGetDiaryEntries } from "@/hooks/use-diary";
+import { confirm } from "./DeleteEntryDialog";
+import { FullscreenLoader } from "../layout/FullScreenLoader";
 
-import { useDeleteEntry, useGetDiaryEntries } from "./useDiary";
-import { confirm } from "./ConfirmDelete";
 
 export default function DiaryList() {
   const router = useRouter();

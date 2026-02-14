@@ -1,0 +1,78 @@
+src
+├── app
+│   ├── (home)
+│   │   └── page.tsx
+│   ├── dashboard
+│   │   ├── diary
+│   │   │   ├── [entryId]
+│   │   │   │   ├── layout.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   └── page.tsx      <-- Imports EntryDetailView
+│   │   │   ├── loading.tsx
+│   │   │   └── page.tsx          <-- Imports DiaryList, AddEntryForm
+│   │   ├── goals
+│   │   │   ├── loading.tsx
+│   │   │   └── page.tsx          <-- Imports GoalList
+│   │   ├── insights
+│   │   │   ├── loading.tsx
+│   │   │   └── page.tsx          <-- Imports Charts
+│   │   ├── settings
+│   │   │   ├── loading.tsx
+│   │   │   └── page.tsx          <-- Imports FAQ
+│   │   ├── layout.tsx            <-- Main Dashboard Layout
+│   │   └── page.tsx              <-- Dashboard Home
+│   ├── user
+│   │   └── page.tsx
+│   ├── Providers.tsx
+│   ├── globals.css
+│   └── layout.tsx                <-- Root Layout
+│
+├── components
+│   ├── ui                        <-- Shadcn UI (Keep as is)
+│   ├── layout                    <-- Global Layout Components
+│   │   ├── Navbar.tsx
+│   │   ├── Sidebar.tsx
+│   │   ├── ModeToggle.tsx
+│   │   └── FullScreenLoader.tsx
+│   ├── diary                     <-- Diary Feature Components
+│   │   ├── DiaryList.tsx
+│   │   ├── AddEntryForm.tsx      (was AddEntry.tsx)
+│   │   ├── VoiceRecorder.tsx
+│   │   ├── DeleteEntryDialog.tsx (was ConfirmDelete.tsx)
+│   │   ├── AudioPlayer.tsx       (was AudioEntry.tsx)
+│   │   ├── TitleEditor.tsx       (was EditTitle.tsx)
+│   │   ├── AnalysisView.tsx
+│   │   └── SaveAudioModal.tsx    (was SaveAudio.tsx)
+│   ├── goals                     <-- Goal Feature Components
+│   │   ├── GoalList.tsx          (was GetGoals.tsx)
+│   │   └── GoalForm.tsx          (was UpdateGoal.tsx)
+│   ├── insights                  <-- Insight Feature Components
+│   │   ├── EmotionHeatmap.tsx
+│   │   ├── FrequentTopics.tsx
+│   │   └── MoodTrendChart.tsx
+│   └── shared                    <-- Reusable Components
+│       ├── FAQ.tsx
+│       ├── FormattedDate.tsx
+│       ├── JoinButton.tsx
+│       ├── Authenticate.tsx
+│       └── AiLoader.tsx
+│
+├── hooks                         <-- Custom Hooks (All centralized)
+│   ├── use-diary.ts
+│   ├── use-entry.ts
+│   ├── use-goal.ts
+│   ├── use-insights.ts
+│   └── use-media-query.ts        (if you have one)
+│
+├── context                       <-- React Contexts
+│   ├── EntryContext.tsx          (was EntryIDContext.tsx)
+│   └── LoadingContext.tsx        (was LoadingContexts.js)
+│
+├── lib                           <-- Utilities & Logic
+│   ├── api.ts                    (was userQueries/userQuery.js)
+│   ├── utils.ts                  (shadcn utils)
+│   ├── helpers.ts                (was components/utils/helperFunctions.ts)
+│   ├── crypto.ts                 (was components/utils/decryptTranscription.js)
+│   └── validation.ts             (was Validation/Vallidate.js)
+│
+└── middleware.ts

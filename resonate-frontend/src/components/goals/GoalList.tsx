@@ -1,5 +1,4 @@
 "use client";
-import AiLoader from "@/components/AiLoader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDeleteGoal, useUpdateGoal } from "@/hooks/use-goal";
 import {
   Calendar,
   CheckCircle2,
@@ -24,8 +24,8 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import UpdateGoalDialog from "./UpdateGoal";
-import { useDeleteGoal, useUpdateGoal } from "./useGoal";
+import AiLoader from "../shared/AiLoader";
+import UpdateGoalDialog from "./GoalForm";
 
 const calculateDaysLeft = (targetDateStr: string | Date) => {
   const today = new Date();
@@ -59,13 +59,13 @@ interface GoalType {
   entryId?: string;
 }
 
-interface GetGoalsProps {
+interface GoalListProps {
   items: GoalType[];
   isError: boolean;
   isLoading: boolean;
 }
 
-const GetGoals: React.FC<GetGoalsProps> = ({ items, isError, isLoading }) => {
+const GoalList: React.FC<GoalListProps> = ({ items, isError, isLoading }) => {
   const [isAddGoalDialogOpen, setAddGoalDialogOpen] = useState(false);
   const { mutate: deleteGoal, isPending: isPendingDeleteUpate } = useDeleteGoal();
   const { mutate: updateGoal, isPending: isPendingGoalUpdate } = useUpdateGoal();
@@ -266,4 +266,4 @@ const GetGoals: React.FC<GetGoalsProps> = ({ items, isError, isLoading }) => {
   );
 };
 
-export default GetGoals;
+export default GoalList;

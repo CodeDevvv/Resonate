@@ -1,11 +1,11 @@
 "use client";
+import UpdateGoalDialog from "@/components/goals/GoalForm";
+import GoalList from "@/components/goals/GoalList";
 import { Button } from "@/components/ui/button";
+import { useAddGoal, useFetchGoal } from "@/hooks/use-goal";
 import { Plus, Target } from "lucide-react"; // Added icons
 import { useState } from "react";
 import toast from "react-hot-toast";
-import GetGoals from "./GetGoals";
-import UpdateGoalDialog from "./UpdateGoal";
-import { useAddGoal, useFetchGoal } from "./useGoal";
 
 interface GoalFormData {
   title: string;
@@ -56,7 +56,7 @@ const GoalsDashboard = () => {
       </div>
 
       <div className="min-h-[400px]">
-        <GetGoals
+        <GoalList
           items={goalEntries}
           isError={isError}
           isLoading={isLoading}

@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/ModeToggle";
 import { SignOutButton, useClerk } from "@clerk/nextjs";
 import {
   Mail,
@@ -18,7 +17,8 @@ import {
   Globe,
   FileBarChart,
 } from "lucide-react";
-import FAQ from "./FAQ";
+import { ModeToggle } from "@/components/layout/ModeToggle";
+import FAQ from "@/components/shared/FAQ";
 
 const Settings = () => {
   const { openUserProfile } = useClerk();

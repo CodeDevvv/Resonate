@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause, Square, Mic, RotateCw } from "lucide-react";
-import SaveAudio from "./SaveAudio";
+import SaveAudio from "./SaveAudioModal";
 
 type VoiceRecorderProps = {
     isLoading: boolean;

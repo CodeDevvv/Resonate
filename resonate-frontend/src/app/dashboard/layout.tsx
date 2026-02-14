@@ -1,6 +1,6 @@
+import Sidebar from "@/components/layout/Sidebar";
+import Authenticate from "@/components/shared/Authenticate";
 import React from "react";
-import Sidebar from "@/components/Sidebar";
-import Authenticate from "@/components/Authenticate";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (

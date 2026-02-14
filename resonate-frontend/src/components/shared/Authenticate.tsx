@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
-import { FullscreenLoader } from "./fullscreen-loader";
+import { FullscreenLoader } from "../layout/FullScreenLoader";
 
 type AuthenticateProps = {
   children: ReactNode;

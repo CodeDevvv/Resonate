@@ -1,4 +1,3 @@
-import AiLoader from '@/components/AiLoader';
 import { useMemo } from 'react';
 import {
   Area,
@@ -10,6 +9,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import AiLoader from '../shared/AiLoader';
 
 interface MoodScores {
   joy: number;

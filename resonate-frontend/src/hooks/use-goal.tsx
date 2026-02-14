@@ -1,7 +1,7 @@
+import { API_URL } from "@/lib/getApiUrl";
 import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { API_URL } from "@/components/utils/getApiUrl";
 
 interface GoalFormData {
     title: string,

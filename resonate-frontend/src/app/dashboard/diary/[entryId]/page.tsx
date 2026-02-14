@@ -1,11 +1,11 @@
 "use client";
-import { FullscreenLoader } from "@/components/fullscreen-loader";
 import { useEffect } from "react";
 import toast from 'react-hot-toast';
-import AnalysisView from "./AnalysisView";
-import AudioEntry from "./AudioEntry";
-import EditTitle from "./EditTitle";
-import { useFetchEntry } from "./useEntry";
+import { FullscreenLoader } from "@/components/layout/FullScreenLoader";
+import EditTitle from "@/components/diary/TitleEditor";
+import AudioEntry from "@/components/diary/AudioPlayer";
+import { useFetchEntry } from "@/hooks/use-entry";
+import AnalysisView from "@/components/diary/AnalysisView";
 
 const DiaryEntry = () => {
   const { data, isLoading, isError, error } = useFetchEntry();

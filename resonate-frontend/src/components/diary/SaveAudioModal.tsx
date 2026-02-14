@@ -2,7 +2,7 @@
 import React from 'react'
 import { Loader2, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useSaveEntry } from './useDiary';
+import { useSaveEntry } from '@/hooks/use-diary';
 
 type AudioProps = {
     audio: Blob,

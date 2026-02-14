@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BookOpen, BarChart3, Target, Settings, Lightbulb, PenSquare, ArrowRight, Copy } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
-import { useThougtofTheDay } from '@/userQueries/userQuery';
+import { useThougtofTheDay } from '@/hooks/use-diary';
 
 const quickLinks = [
   {

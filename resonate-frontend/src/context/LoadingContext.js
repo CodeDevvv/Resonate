@@ -1,6 +1,6 @@
 "use client"
+import { FullscreenLoader } from "@/components/layout/FullScreenLoader";
 import React, { createContext, useContext, useState } from "react";
-import { FullscreenLoader } from "../fullscreen-loader";
 
 const LoadingContext = createContext();
 

@@ -1,5 +1,5 @@
 // TanStackQueries Realted to Diary and it's Entries
-import {API_URL} from "@/components/utils/getApiUrl";
+import { API_URL } from "@/lib/getApiUrl";
 import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
@@ -77,5 +77,21 @@ export const useSaveEntry = (setIsloading: (val: boolean) => void) => {
             const message = error.response?.data?.message || "Server Error";
             toast.error(message);
         }
+    })
+}
+
+export const useThougtofTheDay = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return useQuery({
+        queryKey: ['thought', today],
+        queryFn: () =>
+            fetch(`${API_URL}/quotes/getDailyQuote`)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return res.json();
+                }),
+        staleTime: 24 * 60 * 60 * 1000
     })
 }

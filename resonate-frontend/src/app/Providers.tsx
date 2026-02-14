@@ -1,7 +1,7 @@
 "use client";
+import { ThemeProvider } from "@/components/layout/theme-provider";
+import { LoadingProvider } from "@/context/LoadingContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "@/components/theme-provider";
-import { LoadingProvider } from "@/components/Contexts/LoadingContexts.js";
 import { useState } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {

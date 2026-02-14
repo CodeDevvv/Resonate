@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const decrypt_transcription = (encryptedText) => {
+const decrypt = (encryptedText) => {
     if (!encryptedText) return '';
 
     try {
@@ -49,4 +49,4 @@ const decrypt_transcription = (encryptedText) => {
     }
 };
 
-export default decrypt_transcription
+export default decrypt

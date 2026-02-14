@@ -1,7 +1,7 @@
 "use client";
+import AddEntry from "@/components/diary/AddEntryForm";
+import DiaryList from "@/components/diary/DiaryList";
 import React from "react";
-import DiaryList from "./DiaryList";
-import AddEntry from "./AddEntry";
 
 const Diary = () => {
     return (

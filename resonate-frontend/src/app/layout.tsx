@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider, SignedOut } from '@clerk/nextjs';
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import { Toaster } from 'react-hot-toast';
-import { GlobalLoaderWrapper } from "@/components/Contexts/LoadingContexts.js";
 import { Providers } from "./Providers";
+import Navbar from "@/components/layout/Navbar";
+import { GlobalLoaderWrapper } from '@/context/LoadingContext'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

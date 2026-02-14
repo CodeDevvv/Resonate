@@ -1,4 +1,3 @@
-import AiLoader from '@/components/AiLoader';
 import {
     Bar,
     BarChart,
@@ -8,6 +7,7 @@ import {
     XAxis,
     YAxis
 } from "recharts";
+import AiLoader from "../shared/AiLoader";
 
 interface TopicItem {
     topic: string;

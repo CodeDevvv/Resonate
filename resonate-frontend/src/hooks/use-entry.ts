@@ -3,8 +3,8 @@
 import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { API_URL } from "@/components/utils/getApiUrl";
-import { useEntryID } from "./EntryIDContext";
+import { API_URL } from "@/lib/getApiUrl";
+import { useEntryID } from "@/context/EntryContext";
 
 // Fetch Entry Details
 export const useFetchEntry = () => {

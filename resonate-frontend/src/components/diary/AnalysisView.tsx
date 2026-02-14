@@ -15,15 +15,15 @@ import {
     Plus,
     CheckCircle2
 } from "lucide-react";
-import { useRefetchAnalysis } from "./useEntry";
-import AiLoader from "@/components/AiLoader";
 import { io } from 'socket.io-client';
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEntryID } from "./EntryIDContext";
-import { SOCKET_URL } from "@/components/utils/getApiUrl";
-import { useAddGoal } from "../../goals/useGoal";
-import AddGoalDialog from "../../goals/UpdateGoal";
+import { useAddGoal } from "@/hooks/use-goal";
+import { SOCKET_URL } from "@/lib/getApiUrl";
+import AiLoader from "@/components/shared/AiLoader";
+import UpdateGoalDialog from "@/components/goals/GoalForm";
+import { useEntryID } from "@/context/EntryContext";
+import { useRefetchAnalysis } from "@/hooks/use-entry";
 
 type AnalysisViewProps = {
     entryDetails: {
@@ -104,7 +104,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
     };
 
     const handleAddGoal = (payload: GoalFormData) => {
-        payload = {...payload, entryId: entryId}
+        payload = { ...payload, entryId: entryId }
         addGoal(payload, {
             onSuccess: () => {
                 toast.success("Goal added");
@@ -274,7 +274,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
                 </div>
             </div>
 
-            <AddGoalDialog
+            <UpdateGoalDialog
                 open={isAddGoalDialogOpen}
                 onOpenChange={setAddGoalDialogOpen}
                 initialData={{ title: "", description: entryDetails.goals || "" }}

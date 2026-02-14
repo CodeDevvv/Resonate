@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
-import MoodTrendChart from "./MoodTrendChart";
-import EmotionHeatmap from "./EmotionHeatmap";
-import FrequentTopics from "./FrequentTopics";
-import { useInsights } from "./useInsights";
+import { useInsights } from "@/hooks/use-insights";
+import MoodTrendChart from "@/components/insights/MoodTrendChart";
+import FrequentTopics from "@/components/insights/FrequentTopics";
+import EmotionHeatmap from "@/components/insights/EmotionHeatmap";
 
 const Insights = () => {
   const [isMounted, setIsMounted] = useState(false);
