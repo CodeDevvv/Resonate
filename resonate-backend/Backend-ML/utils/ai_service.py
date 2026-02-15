@@ -12,12 +12,12 @@ from utils.helperFunction import extract_json, encrypt_text, decrypt_text
 load_dotenv()
 
 LLM_URL = os.getenv('LLM_API_URL')
-MODEL = os.getenv('LLM_MODEL_ID', '')
+MODEL = os.getenv('LLM_MODEL_ID')
 
 if not LLM_URL or not MODEL:
     print("LLM_URL or MODEL is not present")
 
-is_gemini = 'gemini' in MODEL.lower()
+is_local_llm = os.getenv('USE_LOCAL_LLM', True)
 
 try:
     whisper_model = whisper.load_model("base")
@@ -28,7 +28,7 @@ except Exception as e:
 
 async def send_payload_to_model(client:httpx.AsyncClient ,system_prompt, user_content, temperature):
     headers = {"Content-Type": "application/json"}
-    if is_gemini:
+    if not is_local_llm:
         api_key = os.getenv('RESONATE_GEMINI_KEY')
         headers["Authorization"] = f"Bearer {api_key}"
     payload = {
@@ -184,7 +184,7 @@ async def call_with_retry (func, client , text, required_keys, should_skip):
 async def get_full_analysis(text: str, status):
     async with httpx.AsyncClient(timeout=180.0) as client:
         results = {}
-        if is_gemini:
+        if not is_local_llm:
             required_keys = [
                 key for key, present in [
                         ("ai_summary", status.hasSummary),
