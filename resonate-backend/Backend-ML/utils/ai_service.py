@@ -7,21 +7,27 @@ import threading
 import tempfile
 import requests
 from dotenv import load_dotenv
+from groq import Groq
 
 from utils.helperFunction import extract_json, encrypt_text, decrypt_text
 load_dotenv()
 
 LLM_URL = os.getenv('LLM_API_URL')
 MODEL = os.getenv('LLM_MODEL_ID')
+GEMINI_KEY = os.getenv('RESONATE_GEMINI_KEY')
+whisperGroqClient = Groq(api_key=os.getenv('GROQ_WHISPER_KEY'))
 
 if not LLM_URL or not MODEL:
     print("LLM_URL or MODEL is not present")
 
-is_local_llm = os.getenv('USE_LOCAL_LLM', True)
+is_local_llm = str(os.getenv('USE_LOCAL_LLM', 'True')).lower() in ('true', '1', 't')
 
 try:
-    whisper_model = whisper.load_model("base")
-    whisper_model_lock = threading.Lock()
+    if is_local_llm:
+        whisper_model = whisper.load_model("base")
+        whisper_model_lock = threading.Lock()
+    else:
+        whisper_model = None
 except Exception as e:
     print(f"[INIT ERROR] Could not load Whisper model: {e}")
     whisper_model = None
@@ -29,8 +35,7 @@ except Exception as e:
 async def send_payload_to_model(client:httpx.AsyncClient ,system_prompt, user_content, temperature):
     headers = {"Content-Type": "application/json"}
     if not is_local_llm:
-        api_key = os.getenv('RESONATE_GEMINI_KEY')
-        headers["Authorization"] = f"Bearer {api_key}"
+        headers["Authorization"] = f"Bearer {GEMINI_KEY}"
     payload = {
         "model": MODEL, 
         "messages": [
@@ -45,7 +50,6 @@ async def send_payload_to_model(client:httpx.AsyncClient ,system_prompt, user_co
     result = response.json()
     return extract_json(result['choices'][0]['message']['content'].strip())
     
-
 async def get_summary_and_tags(client: httpx.AsyncClient, text: str):
     print("[AI SERVICE] Fetching summary and tags...")
     system_prompt = """You are a precise JSON extractor. 
@@ -159,8 +163,8 @@ async def get_combined_analysis(client, text, required_keys):
             if isCompleted:
                 print("Successfully")
                 return [accumulated_results]
-        except: 
-            print("Error While combine, reattempt")
+        except Exception as e: 
+            print(f"[AI SERVICE] Error while combined Analysis, reattempting: {e}")
     return [accumulated_results]
 
 # Retry 3 Times
@@ -199,6 +203,7 @@ async def get_full_analysis(text: str, status):
             results = await get_combined_analysis(client, text, required_keys)    
         else:
             print("[AI ANALYSIS] Starting concurrent analysis tasks...")
+            print("text being passes: ", text)
             tasks = [
                 call_with_retry(get_summary_and_tags, client, text, ["ai_summary", "tags"], (status.hasSummary and status.hasTags)),
                 call_with_retry(get_moodScores, client, text, ["mood_scores"], status.hasMoodScores),
@@ -218,32 +223,64 @@ async def get_full_analysis(text: str, status):
         return final_analysis;
     
 async def transcribe_audio(audio_url):
-    if not whisper_model:
+    if not whisper_model and is_local_llm:
         print("[TRANSCRIPT ERROR] Transcription service is unavailable (Model not loaded).")
         raise HTTPException(status_code=503, detail="Transcription service is unavailable.")
         
     def downloadAudioFromUrl(url):
         print(f"[TRANSCRIPT] Downloading audio from URL")
+        # try:
+        #     response = requests.get(url, timeout=60)
+        #     response.raise_for_status()
+        # except Exception as e:
+        #     print(f"[TRANSCRIPT ERROR] Download failed: {e}")
+        #     raise RuntimeError(f"Download failed: {e}")
+
+        # tmp = tempfile.NamedTemporaryFile(dir='.', delete=False, suffix=".wav")
+        # try:
+        #     tmp.write(response.content)
+        #     tmp.flush()
+        #     os.fsync(tmp.fileno())
+        #     return tmp.name
+        # finally:
+        #     tmp.close() 
+        
         try:
-            response = requests.get(url, timeout=60)
-            response.raise_for_status()
+            with requests.get(url, stream=True, timeout=60) as response:
+                response.raise_for_status()
+                
+                # tmp file
+                with tempfile.NamedTemporaryFile(dir='.', delete=False, suffix=".wav") as tmp:
+                    
+                    # Helps preventing downloading entire file on RAM at once , only downloads 8kb -> saves to disk -> grabs next
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            tmp.write(chunk)
+
+                    tmp.flush()
+                    os.fsync(tmp.fileno())
+                    
+                    return tmp.name
         except Exception as e:
             print(f"[TRANSCRIPT ERROR] Download failed: {e}")
             raise RuntimeError(f"Download failed: {e}")
-
-        tmp = tempfile.NamedTemporaryFile(dir='.', delete=False, suffix=".wav")
-        try:
-            tmp.write(response.content)
-            tmp.flush()
-            os.fsync(tmp.fileno())
-            return tmp.name
-        finally:
-            tmp.close() 
             
     def run_whisper():
-        with whisper_model_lock:
-            return whisper_model.transcribe(audio_path, fp16=False)
-      
+        if is_local_llm:
+            print("[TRANSCRIPT] Starting Audio Transcription with local whisper")
+            with whisper_model_lock:
+                return whisper_model.transcribe(audio_path, fp16=False)
+        else:
+            print("[TRANSCRIPT] Starting Audio Transcription with GROQ whisper")
+            with open(audio_path, "rb") as file:
+                response =  whisperGroqClient.audio.transcriptions.create(
+                    file=(audio_path, file.read()),
+                    model="whisper-large-v3",
+                    response_format="json",
+                    temperature=0.0
+                )
+                return {"text" : response.text} # Matching local whisper return format
+            
     audio_path = None
     try:
         print("[TRANSCRIPT] Triggered download and transcribe...")

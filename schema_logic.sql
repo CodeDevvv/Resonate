@@ -1,40 +1,49 @@
 -- ########## STORAGE CLEANUP FUNCTIONS ##########
 
--- Deletes audio file from storage when a diary entry is removed
-create or replace function delete_file_when_entry_deleted()
-returns trigger language plpgsql security definer as $$
-begin
-  if OLD.audio_path is not null then
-      delete from storage.objects where bucket_id = 'audio-recordings' and name = OLD.audio_path;
-  end if;
-  return OLD;
-end;
-$$;
+-- Deleting triggers for storaga cleanup since no longer allowed according to supabase policies
 
--- Deletes audio file from storage when the path is set to null during an update
-create or replace function delete_file_on_unlink()
-returns trigger language plpgsql security definer as $$
-begin
-  if OLD.audio_path is not null and NEW.audio_path is null then
-      delete from storage.objects where bucket_id = 'audio-recordings' and name = OLD.audio_path;
-  end if;
-  return NEW;
-end;
-$$;
+-- Deletes audio file from storage when a diary entry is removed
+-- create or replace function delete_file_when_entry_deleted()
+-- returns trigger language plpgsql security definer as $$
+-- begin
+--   if OLD.audio_path is not null then
+--       delete from storage.objects where bucket_id = 'audio-recordings' and name = OLD.audio_path;
+--   end if;
+--   return OLD;
+-- end;
+-- $$;
+
+-- -- Deletes audio file from storage when the path is set to null during an update
+-- create or replace function delete_file_on_unlink()
+-- returns trigger language plpgsql security definer as $$
+-- begin
+--   if OLD.audio_path is not null and NEW.audio_path is null then
+--       delete from storage.objects where bucket_id = 'audio-recordings' and name = OLD.audio_path;
+--   end if;
+--   return NEW;
+-- end;
+-- $$;
 
 
 -- ########## DATABASE TRIGGERS ##########
 
--- Fire cleanup on entry deletion
-drop trigger if exists on_entry_delete_cleanup on public."DiaryEntry";
-create trigger on_entry_delete_cleanup after delete on public."DiaryEntry"
-for each row execute function delete_file_when_entry_deleted();
+-- -- Fire cleanup on entry deletion
+-- drop trigger if exists on_entry_delete_cleanup on public."DiaryEntry";
+-- create trigger on_entry_delete_cleanup after delete on public."DiaryEntry"
+-- for each row execute function delete_file_when_entry_deleted();
 
--- Fire cleanup when audio is unlinked from an entry
-drop trigger if exists on_audio_unlink on public."DiaryEntry";
-create trigger on_audio_unlink after update on public."DiaryEntry"
-for each row execute function delete_file_on_unlink();
+-- -- Fire cleanup when audio is unlinked from an entry
+-- drop trigger if exists on_audio_unlink on public."DiaryEntry";
+-- create trigger on_audio_unlink after update on public."DiaryEntry"
+-- for each row execute function delete_file_on_unlink();
 
+-- Drop the DELETE trigger and function
+DROP TRIGGER IF EXISTS on_entry_delete_cleanup ON public."DiaryEntry";
+DROP FUNCTION IF EXISTS delete_file_when_entry_deleted();
+
+-- Drop the UPDATE trigger and function
+DROP TRIGGER IF EXISTS on_audio_unlink ON public."DiaryEntry";
+DROP FUNCTION IF EXISTS delete_file_on_unlink();
 
 -- ########## ANALYTICS & INSIGHTS ##########
 

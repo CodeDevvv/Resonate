@@ -2,13 +2,14 @@ import { getUserId, supabase } from "../utils/config";
 
 export const getInsights = async (req, res) => {
     try {
-        const token = req.headers.authorization?.replace("Bearer ", "");
-        if (!token) {
-            console.log("[Insights] Authorization token missing");
-            return res.status(401).json({ status: false, message: "Authentication required" });
-        }
+        // const token = req.headers.authorization?.replace("Bearer ", "");
+        // if (!token) {
+        //     console.log("[Insights] Authorization token missing");
+        //     return res.status(401).json({ status: false, message: "Authentication required" });
+        // }
 
-        const userId = await getUserId(token);
+        // const userId = await getUserId(token);
+        const userId = req.auth.userId;
         console.log(`[Insights] Fetching data for User: ${userId}`);
 
         const { data, error } = await supabase

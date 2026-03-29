@@ -39,6 +39,21 @@ export const useRefetchAnalysis = () => {
     });
 }
 
+
+type AnalysisViewProps = {
+    entryDetails: {
+        transcript: string;
+        ai_summary: string;
+        mood_labels: { [key: string]: number };
+        suggestions: string;
+        reflections: string;
+        tags: string[];
+        goals: string | null;
+        isGoalAdded?: boolean;
+        status: string;
+    };
+};
+
 // Update Title
 export const useUpdateTitle = () => {
     const { getToken } = useAuth();
@@ -52,7 +67,18 @@ export const useUpdateTitle = () => {
             )
             return data
         },
-        onSuccess: () => {
+        onSuccess: (responseData, newTitle) => {
+            queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => {
+                if (!oldData) return oldData;
+                return {
+                    ...oldData,
+                    entryDetails: {
+                        ...oldData.entryDetails,
+                        title: newTitle
+                    }
+                };
+            });
+
             queryClient.invalidateQueries({ queryKey: ['diaryEntry', entryId] })
             queryClient.invalidateQueries({ queryKey: ['diaryEntries'] })
         }

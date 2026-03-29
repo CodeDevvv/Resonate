@@ -5,10 +5,11 @@ import { decrypt } from "../utils/encryption.js";
 export const createEntry = async (req, res) => {
   try {
     if (!req.file) return res.json({ status: false, message: "Audio file is required" });
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) return res.json({ status: false, message: "Authorization token is required" });
+    // const token = req.headers.authorization?.replace("Bearer ", "");
+    // if (!token) return res.json({ status: false, message: "Authorization token is required" });
 
-    const userId = await getUserId(token)
+    // const userId = await getUserId(token);
+    const userId = req.auth.userId;
     const fileName = `${userId}/${Date.now()}-audio.wav`;
     const filebuffer = req.file.buffer;
 
@@ -38,7 +39,7 @@ export const createEntry = async (req, res) => {
     if (dbError) {
       console.error("Database error");
       // Rollback: Delete uploaded file
-      await supabase.storage.from("audio-recordings").remove([uploadData.fullPath]);
+      await supabase.storage.from("audio-recordings").remove([uploadData.path]);
       return res.status(500).json({ status: false, message: "Database Error!" })
     }
 
@@ -56,13 +57,14 @@ export const createEntry = async (req, res) => {
 export const getEntriesList = async (req, res) => {
   try {
     console.log("Fetching Diary Entires.")
-    const token = req.headers.authorization?.replace('Bearer ', "")
-    if (!token) {
-      console.log(`[WARN] Unauthorized: Missing Authorization token in request headers.`)
-      return res.status(401).json({ status: false, message: "Unauthorized" })
-    }
+    // const token = req.headers.authorization?.replace('Bearer ', "")
+    // if (!token) {
+    //   console.log(`[WARN] Unauthorized: Missing Authorization token in request headers.`)
+    //   return res.status(401).json({ status: false, message: "Unauthorized" })
+    // }
 
-    const userId = await getUserId(token)
+    // const userId = await getUserId(token);
+    const userId = req.auth.userId;
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pagesize) || 5;
     console.log("page: " + page + " pageSize: " + pageSize)
@@ -162,10 +164,11 @@ export const dispatchAnalysis = async (entryId, userId) => {
 
 export const reanalyzeEntry = async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) return res.json({ status: false, message: "Authorization token is required" });
+    // const token = req.headers.authorization?.replace("Bearer ", "");
+    // if (!token) return res.json({ status: false, message: "Authorization token is required" });
 
-    const userId = await getUserId(token)
+    // const userId = await getUserId(token)
+    const userId = req.auth.userId;
     const entryId = req.query.entryId
 
     dispatchAnalysis(entryId, userId)
@@ -191,13 +194,14 @@ export const getEntryById = async (req, res) => {
   }
 
   const token = req.headers.authorization?.replace('Bearer ', "")
-  if (!token) {
-    console.log(`[WARN] Unauthorized: Missing Authorization token in request headers.`)
-    return res.json({ status: false, message: "Unauthorized" })
-  }
+  // if (!token) {
+  //   console.log(`[WARN] Unauthorized: Missing Authorization token in request headers.`)
+  //   return res.json({ status: false, message: "Unauthorized" })
+  // }
 
   try {
-    const userId = await getUserId(token)
+    // const userId = await getUserId(token)
+    const userId = req.auth.userId;
     const { data: entryDetails, error: entryError } = await supabase
       .from('DiaryEntry')
       .select('title, audio_path, transcript, ai_summary ,tags, mood_labels, reflections, suggestions, mood_scores, goals, status, isGoalAdded')
@@ -276,13 +280,14 @@ export const updateTitle = async (req, res) => {
       return res.status(400).json({ message: "Missing data" })
     }
 
-    const token = req.headers.authorization?.replace('Bearer ', "")
-    if (!token) {
-      console.log(`[WARN] Unauthorized: Missing Authorization token in request headers.`)
-      return res.status(401).json({ message: "Unauthorized" })
-    }
+    // const token = req.headers.authorization?.replace('Bearer ', "")
+    // if (!token) {
+    //   console.log(`[WARN] Unauthorized: Missing Authorization token in request headers.`)
+    //   return res.status(401).json({ message: "Unauthorized" })
+    // }
+    // const userId = await getUserId(token)
 
-    const userId = await getUserId(token)
+    const userId = req.auth.userId;
     const { error: updateError } = await supabase
       .from("DiaryEntry")
       .update({ title: newTitle })
@@ -304,29 +309,54 @@ export const updateTitle = async (req, res) => {
 
 export const deleteEntry = async (req, res) => {
   console.log(`Deleting Entry...`);
-  const token = req.headers.authorization?.replace('Bearer ', "");
-  if (!token) return res.status(401).json({ message: "Unauthorized" });
+  // const token = req.headers.authorization?.replace('Bearer ', "");
+  // if (!token) return res.status(401).json({ message: "Unauthorized" });
+  // const userId = await getUserId(token)
 
   const entryId = req.query.entryId;
-  const userId = await getUserId(token)
+  const userId = req.auth.userId;
   console.log("entry", entryId)
   console.log("user", userId)
   try {
     // Delete the DB Entry
-    // The SQL Trigger will automatically find and delete the file in 'audio-recordings'
-    const { error, count } = await supabase
+    const { data: entryBackup, error: fetchError } = await supabase
+      .from("DiaryEntry")
+      .select('*')
+      .eq('user_id', userId)
+      .eq("entry_id", entryId)
+      .single();
+
+    if (fetchError || !entryBackup) {
+      return res.status(404).json({ message: "Entry not found" });
+    }
+
+    const { error: tableError, count } = await supabase
       .from("DiaryEntry")
       .delete({ count: 'exact' })
       .eq('user_id', userId)
       .eq('entry_id', entryId);
 
-    if (error) {
-      console.error("DB Delete Error:", error.message);
+    if (tableError) {
+      console.error("DB Table Delete Error:", tableError.message);
       return res.status(500).json({ message: "Failed to delete entry" });
     }
-
     if (count === 0) {
       return res.status(404).json({ message: "Entry not found" });
+    }
+
+    if (entryBackup.audio_path) {
+      const { error: storageError } = await supabase
+        .storage
+        .from('audio-recordings')
+        .remove([entryBackup.audio_path])
+
+      if (storageError) {
+        console.error("DB Storage Delete Error:", storageError.message);
+
+        // Rollback Table Entry Deletion
+        await supabase.from("DiaryEntry").insert([entryBackup])
+        return res.status(500).json({ message: "Failed to delete entry" });
+      }
     }
 
     return res.status(200).json({ message: "Entry and Audio deleted successfully" });

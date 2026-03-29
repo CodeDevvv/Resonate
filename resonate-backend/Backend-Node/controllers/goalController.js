@@ -2,13 +2,14 @@ import { getUserId, supabase } from "../utils/config";
 
 export const addGoal = async (req, res) => {
     try {
-        const token = req.headers.authorization?.replace("Bearer ", "");
-        if (!token) {
-            console.log("[Goal] Authorization token missing");
-            return res.status(401).json({ status: false, message: "Authentication required" });
-        }
+        // const token = req.headers.authorization?.replace("Bearer ", "");
+        // if (!token) {
+        //     console.log("[Goal] Authorization token missing");
+        //     return res.status(401).json({ status: false, message: "Authentication required" });
+        // }
 
-        const userId = await getUserId(token);
+        // const userId = await getUserId(token);
+        const userId = req.auth.userId;
         const goalData = req.body;
 
         if (!goalData || !goalData.title) {
@@ -53,12 +54,13 @@ export const addGoal = async (req, res) => {
 
 export const getGoals = async (req, res) => {
     try {
-        const token = req.headers.authorization?.replace("Bearer ", "")
-        if (!token) {
-            return res.status(401).json({ status: false, message: "Authentication required" })
-        }
+        // const token = req.headers.authorization?.replace("Bearer ", "")
+        // if (!token) {
+        //     return res.status(401).json({ status: false, message: "Authentication required" })
+        // }
 
-        const userId = await getUserId(token)
+        // const userId = await getUserId(token)
+        const userId = req.auth.userId;
         if (!userId) {
             return res.status(401).json({ status: false, message: "Session expired, please login again" })
         }
@@ -90,12 +92,12 @@ export const getGoals = async (req, res) => {
 }
 
 export const updateGoal = async (req, res) => {
-    const token = req.headers.authorization.replace('Bearer ', "")
-    if (!token) return res.json({ status: false, message: "unauthorized call" })
+    // const token = req.headers.authorization.replace('Bearer ', "")
+    // if (!token) return res.json({ status: false, message: "unauthorized call" })
+    //     const userId = await getUserId(token);
 
     try {
-
-        const userId = await getUserId(token);
+        const userId = req.auth.userId;
         if (!userId) return res.json({ status: false, message: "session expired! login back" })
 
         const updateData = req.body
@@ -130,13 +132,15 @@ export const updateGoal = async (req, res) => {
 
 export const deleteGoal = async (req, res) => {
     try {
-        const token = req.headers.authorization?.replace('Bearer ', "");
-        if (!token) {
-            console.log("[Goal] Authorization token missing");
-            return res.status(401).json({ status: false, message: "Unauthorized Call" });
-        }
+        // const token = req.headers.authorization?.replace('Bearer ', "");
+        // if (!token) {
+        //     console.log("[Goal] Authorization token missing");
+        //     return res.status(401).json({ status: false, message: "Unauthorized Call" });
+        // }
 
-        const userId = await getUserId(token);
+        // const userId = await getUserId(token);
+
+        const userId = req.auth.userId;
         if (!userId) {
             console.log("[Goal] Session expired");
             return res.status(401).json({ status: false, message: "Session expired, please login again" });
