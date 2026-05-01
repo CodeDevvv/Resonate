@@ -12,9 +12,9 @@ export const useInsights = () => {
                 headers: { Authorization: `Bearer ${await getToken()}` }
             })
 
-            if (!data.status) {
-                throw new Error()
-            }
+            // if (!data.status) {
+            //     throw new Error()
+            // }
             return data.insights;
         },
         enabled: !!userId,

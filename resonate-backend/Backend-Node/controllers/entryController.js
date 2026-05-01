@@ -115,6 +115,7 @@ export const dispatchAnalysis = async (entryId, userId) => {
       throw error
     }
 
+    // Check this
     if (entryDetails.status === 'completed' || entryDetails.status === 'failed') {
       await supabase
         .from("DiaryEntry")

@@ -55,7 +55,7 @@ interface GoalType {
   title: string;
   description: string;
   targetDate: string | "";
-  isCompleted?: boolean;
+  completed?: boolean;
   entryId?: string;
 }
 
@@ -74,7 +74,7 @@ const GoalList: React.FC<GoalListProps> = ({ items, isError, isLoading }) => {
     title: "",
     description: "",
     targetDate: "",
-    isCompleted: false,
+    completed: false,
   });
 
   const handleEdit = (goal: GoalType) => {
@@ -83,7 +83,7 @@ const GoalList: React.FC<GoalListProps> = ({ items, isError, isLoading }) => {
       title: goal.title,
       description: goal.description,
       targetDate: new Date(goal.targetDate).toISOString().split("T")[0],
-      isCompleted: goal.isCompleted || false,
+      completed: goal.completed || false,
     });
     setAddGoalDialogOpen(true);
   };
@@ -157,14 +157,14 @@ const GoalList: React.FC<GoalListProps> = ({ items, isError, isLoading }) => {
                 key={goal.goalId}
                 className={`group relative w-full border transition-all duration-200 rounded-lg p-4
                   ${
-                    goal.isCompleted
+                    goal.completed
                       ? "bg-muted/30 border-border/40 opacity-80"
                       : "bg-card border-border/60 shadow-sm hover:shadow-md hover:border-primary/20"
                   }`}
               >
                 <div className="flex items-start gap-3.5">
                   <div className="mt-0.5 shrink-0">
-                    {goal.isCompleted ? (
+                    {goal.completed ? (
                       <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       </div>
@@ -178,12 +178,12 @@ const GoalList: React.FC<GoalListProps> = ({ items, isError, isLoading }) => {
                       <div className="flex items-center gap-2 overflow-hidden">
                         <h3
                           className={`font-semibold tracking-tight text-sm truncate ${
-                            goal.isCompleted ? "text-muted-foreground line-through decoration-muted-foreground/30" : "text-foreground"
+                            goal.completed ? "text-muted-foreground line-through decoration-muted-foreground/30" : "text-foreground"
                           }`}
                         >
                           {goal.title}
                         </h3>
-                        {!goal.isCompleted && (
+                        {!goal.completed && (
                           <Badge
                             variant="outline"
                             className={`shrink-0 rounded-[4px] px-1.5 py-0 text-[10px] h-4 font-medium uppercase tracking-wide border ${daysLeftInfo.color}`}
@@ -218,7 +218,7 @@ const GoalList: React.FC<GoalListProps> = ({ items, isError, isLoading }) => {
                       </DropdownMenu>
                     </div>
 
-                    <p className={`text-xs line-clamp-1 ${goal.isCompleted ? "text-muted-foreground/60" : "text-muted-foreground/90"}`}>
+                    <p className={`text-xs line-clamp-1 ${goal.completed ? "text-muted-foreground/60" : "text-muted-foreground/90"}`}>
                       {goal.description}
                     </p>
 

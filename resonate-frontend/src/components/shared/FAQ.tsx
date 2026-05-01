@@ -17,40 +17,20 @@ const faqs = [
         answer: "All data is securely stored in the cloud, using trusted providers with strong privacy controls.",
     },
     {
-        question: "Does OpenAI use my recordings to train their AI models?",
-        answer: "No, your recordings are not shared with OpenAI or used to train their models. Your privacy is our priority.",
-    },
-    {
         question: "Can I export my data?",
         answer: "Yes, you can export your data as a PDF with all transcripts, summaries, and tags.",
-    },
-    {
-        question: "Is there a lifetime option instead of a subscription?",
-        answer: "Currently, we offer monthly and yearly subscriptions. Lifetime options may be considered in the future.",
     },
     {
         question: "Who besides me can access my data?",
         answer: "Only you can access your data. No one else, including our team, can view your private entries.",
     },
     {
-        question: "How do I permanently delete my data?",
-        answer: "You can delete your account and all associated data from the account management section.",
-    },
-    {
-        question: "What's included in the paid plan?",
-        answer: "The paid plan unlocks unlimited entries, advanced analytics, and priority support.",
-    },
-    {
         question: "Will my entries be used for ads or marketing?",
         answer: "Never. Your entries are private and will not be used for advertising or marketing purposes.",
     },
     {
-        question: "Can I disable the AI features?",
-        answer: "Yes, you can toggle AI features in your settings.",
-    },
-    {
         question: "What is the company and where are they based?",
-        answer: "This is a personal project by [Your Name], built with love and privacy in mind.",
+        answer: "This is a personal project by Vijay, built with love and privacy in mind.",
     },
 ];
 

@@ -11,7 +11,7 @@ app = FastAPI()
 load_dotenv()
 
 HEADERS = {}
-node_backend_url = os.getenv("NODE_BACKEND_URL")
+backend_url = os.getenv("BACKEND_URL")
 
 # Define BaseModel
 class AnalyzePayload(BaseModel):
@@ -50,20 +50,21 @@ async def process_background_analysis(payload: AnalyzePayload):
         async with httpx.AsyncClient() as client:
             # Structure of model_results
             # 
+            model_results["status"] = "completed"
             expressPayload = {
                 "analysis" : model_results,
                 "status" : payload.model_dump()
             }
             print(f"[WEBHOOK] Sending success payload to Express")
-            response = await client.post(f"{node_backend_url}/api/webhooks/handleAiResult", json=expressPayload)
+            response = await client.post(f"{backend_url}/api/webhooks/handleAiResult", json=expressPayload)
             print(f"[WEBHOOK] Success Response Status: {response.status_code}")
             
     except Exception as e:
         print(f"[ERROR] Background Processing Failed for Entry ID: {payload.entryId} | Error: {e}")
         async with httpx.AsyncClient() as client:
-            expressPayload = {"status" : payload.model_dump() , "analysis" : "failed"}
+            expressPayload = {"status" : payload.model_dump() , "analysis" : {"status": "failed"}}
             print(f"[WEBHOOK] Sending failure payload to Express...")
-            response = await client.post(f"{node_backend_url}/api/webhooks/handleAiResult", json=expressPayload)
+            response = await client.post(f"{backend_url}/api/webhooks/handleAiResult", json=expressPayload)
             print(f"[WEBHOOK] Failure Response Status: {response.status_code}")
 
 @app.post("/analyze")

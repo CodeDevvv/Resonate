@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 interface AddGoalDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    initialData?: { title: string; description: string; isCompleted?: boolean, targetDate?: string, goalId?: string };
+    initialData?: { title: string; description: string; completed?: boolean, targetDate?: string, goalId?: string };
     onGoalUpdate: (payload: GoalFormData) => void;
     isPending: boolean;
     isGoalUpdate: boolean
@@ -24,11 +24,11 @@ interface GoalFormData {
     description: string,
     targetDate: string,
     entryId?: string,
-    isCompleted?: boolean
+    completed?: boolean
 }
 
 const UpdateGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, initialData, onGoalUpdate, isPending, isGoalUpdate }) => {
-    const [form, setForm] = useState({ title: "", description: "", targetDate: "", isCompleted: false });
+    const [form, setForm] = useState({ title: "", description: "", targetDate: "", completed: false });
 
     useEffect(() => {
         if (initialData) {
@@ -36,7 +36,7 @@ const UpdateGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, in
                 title: initialData.title.trim() || "",
                 description: initialData.description || "",
                 targetDate: initialData.targetDate || "",
-                isCompleted: initialData.isCompleted || false
+                completed: initialData.completed || false
             });
         }
     }, [initialData]);
@@ -46,7 +46,7 @@ const UpdateGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, in
             toast.error('Goal must have a title and target date.');
             return;
         }
-        if(!form.isCompleted) {
+        if(!form.completed && isDateInPast(form.targetDate)) {
             if (isDateInPast(form.targetDate)) {
                 toast.error("Target date cannot be in the past.");
                 return;
@@ -71,8 +71,8 @@ const UpdateGoalDialog: React.FC<AddGoalDialogProps> = ({ open, onOpenChange, in
                     <div className="flex items-center space-x-2 pt-2">
                         <Checkbox
                             id="isCompleted"
-                            checked={form.isCompleted}
-                            onCheckedChange={(checked) => setForm({ ...form, isCompleted: !!checked })}
+                            checked={form.completed }
+                            onCheckedChange={(checked) => setForm({ ...form, completed: !!checked })}
                         />
                         <label htmlFor="isCompleted" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                             Mark this goal as completed

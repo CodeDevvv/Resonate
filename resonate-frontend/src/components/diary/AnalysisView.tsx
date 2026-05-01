@@ -15,7 +15,6 @@ import {
     Plus,
     CheckCircle2
 } from "lucide-react";
-import { io } from 'socket.io-client';
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAddGoal } from "@/hooks/use-goal";
@@ -24,6 +23,8 @@ import AiLoader from "@/components/shared/AiLoader";
 import UpdateGoalDialog from "@/components/goals/GoalForm";
 import { useEntryID } from "@/context/EntryContext";
 import { useRefetchAnalysis } from "@/hooks/use-entry";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 
 type AnalysisViewProps = {
     entryDetails: {
@@ -55,42 +56,79 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
 
     const { mutate: refetchMutation } = useRefetchAnalysis();
 
+    // useEffect(() => {
+    //     if (entryDetails.status === 'completed') return;
+
+    //     const socket = io(SOCKET_URL);
+    //     socket.emit('join_entry', entryId);
+
+    //     socket.on('entry_update', (payload) => {
+    //         queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => {
+    //             if (!oldData) return null;
+    //             return {
+    //                 ...oldData,
+    //                 entryDetails: {
+    //                     ...oldData.entryDetails,
+    //                     status: payload.status,
+    //                     ...payload.result
+    //                 }
+    //             };
+    //         });
+    //     });
+
+    //     return () => {
+    //         socket.off('entry_update');
+    //         socket.disconnect();
+    //     };
+    // }, [entryId, entryDetails?.status, queryClient]);
+
     useEffect(() => {
         if (entryDetails.status === 'completed') return;
 
-        const socket = io(SOCKET_URL);
-        socket.emit('join_entry', entryId);
-
-        socket.on('entry_update', (payload) => {
-            queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => {
-                if (!oldData) return null;
-                return {
-                    ...oldData,
-                    entryDetails: {
-                        ...oldData.entryDetails,
-                        status: payload.status,
-                        ...payload.result
-                    }
-                };
-            });
+        const socket = new SockJS(`${SOCKET_URL}/entryUpdate`);
+        const client = new Client({
+            webSocketFactory: () => socket,
+            onConnect: () => {
+                // Listen for updates on this entry
+                client.subscribe(`/topic/entry/${entryId}`, (message) => {
+                    const payload = JSON.parse(message.body);
+                    console.log("Received STOMP message:", payload);
+                    queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => {
+                        if (!oldData) return oldData;
+                        return {
+                            ...oldData,
+                            entryDetails: {
+                                ...oldData.entryDetails,
+                                status: payload.status,
+                                ...payload
+                            }
+                        };
+                    });
+                });
+            },
+            onStompError: (frame) => {
+                console.error("STOMP error:", frame);
+                toast.error("WebSocket connection error");
+            }
         });
-
+        client.activate();
         return () => {
-            socket.off('entry_update');
-            socket.disconnect();
+            client.deactivate();
         };
     }, [entryId, entryDetails?.status, queryClient]);
 
     const handleRefetch = (e: React.MouseEvent) => {
         e.stopPropagation();
-
-        queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => ({
-            ...oldData,
-            entryDetails: {
-                ...oldData.entryDetails,
-                status: 'processing'
+        queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => {
+            if (!oldData) return oldData;
+            return {
+                ...oldData,
+                entryDetails: {
+                    ...oldData.entryDetails,
+                    status: 'processing'
+                }
             }
-        }));
+        });
 
         refetchMutation(undefined, {
             onSuccess: () => {
@@ -108,7 +146,16 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
         addGoal(payload, {
             onSuccess: () => {
                 toast.success("Goal added");
-                queryClient.invalidateQueries({ queryKey: ['diaryEntry', entryId] });
+                queryClient.setQueryData(['diaryEntry', entryId], (oldData: AnalysisViewProps) => {
+                    if (!oldData) return oldData;
+                    return {
+                        ...oldData,
+                        entryDetails: {
+                            ...oldData.entryDetails,
+                            isGoalAdded: true,
+                        }
+                    }
+                });
                 setAddGoalDialogOpen(false);
             },
             onError: (err) => {
@@ -126,8 +173,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ entryDetails }) => {
         !entryDetails?.suggestions ||
         !entryDetails?.reflections || !entryDetails?.goals || entryDetails.status === 'failed';
 
-    const hasValidGoal = entryDetails.goals && entryDetails.goals.toLowerCase().trim() !== "None detected";
-
+    const hasValidGoal = entryDetails.goals && entryDetails.goals.toLowerCase().trim() !== "none detected";
     return (
         <>
             <div className="space-y-6 animate-fade-in mx-auto">

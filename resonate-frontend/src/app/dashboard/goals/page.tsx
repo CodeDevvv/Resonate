@@ -12,7 +12,7 @@ interface GoalFormData {
   description: string;
   targetDate: string;
   entryId?: string;
-  isCompleted?: boolean
+  completed?: boolean
 }
 
 const GoalsDashboard = () => {

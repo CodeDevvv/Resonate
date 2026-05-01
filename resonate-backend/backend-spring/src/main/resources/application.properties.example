@@ -1,0 +1,47 @@
+# ===================================================================
+# Resonate Backend - Application Configuration (Example)
+# Rename this file to application.properties and fill in the values.
+# ===================================================================
+
+spring.application.name=resonate-backend
+management.endpoints.web.exposure.include=health,info,metrics
+
+# Clerk Authentication (JWT)
+# Example: https://aware-ferret-99.clerk.accounts.dev
+spring.security.oauth2.resourceserver.jwt.issuer-uri=https://<your-clerk-id>.clerk.accounts.dev
+
+# Supabase Database (PostgreSQL)
+# Use the connection string found in Supabase -> Project Settings -> Database
+spring.datasource.url=jdbc:postgresql://<db-host-from-supabase>:5432/postgres
+spring.datasource.username=<db-user-usually-postgres.project-id>
+spring.datasource.password=<your-database-password>
+
+# JPA / Hibernate Settings
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.type.json_format_mapper=jackson
+
+# Security: Data At Rest Encryption
+# Key must be 16, 24, or 32 characters for AES
+encryption.key=<your-secret-encryption-key>
+encryption.algorithm=AES/CBC/NoPadding
+
+# Supabase S3 Storage Configuration
+# Found in Supabase Settings -> Storage
+supabase.s3.endpoint=https://<project-id>.storage.supabase.co/storage/v1/s3
+supabase.s3.region=<your-region-e.g-us-east-1>
+supabase.s3.access-key=<s3-access-key>
+supabase.s3.secret-key=<s3-secret-key>
+supabase.s3.bucket=<bucket-name>
+
+# FastAPI AI Microservice URL
+# Default is http://localhost:8000 for local development
+fastapi.base-url=http://localhost:8000
+
+# Supabase REST/RPC Configuration
+# base-url example: https://xyzabc.supabase.co
+# api-key: Use the 'anon' or 'service_role' key
+supabase.base-url=https://<project-id>.supabase.co
+supabase.api-key=<supabase-anon-key>

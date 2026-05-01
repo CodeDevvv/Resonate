@@ -86,11 +86,11 @@ const EditTitle: React.FC<TitleProps> = ({ titleprop }) => {
                 <RotateCw className="w-4 h-4 animate-spin" />
               </Button>
             ) : (
-              <Button
+              title && <Button
                 size="icon"
                 variant="ghost"
                 onClick={handleUpdateTitle}
-                disabled={title.trim() === titleprop || !title.trim()}
+                disabled={title != null && title.trim() === titleprop || !title.trim()}
               >
                 <Save className="w-5 h-5 text-primary" />
               </Button>
